@@ -1,0 +1,381 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/customer_model.dart';
+import '../providers/customer_provider.dart';
+import '../widgets/swipeable_list_tile.dart';
+import '../widgets/sticky_search_bar.dart';
+import 'customer_detail_screen.dart';
+
+class CustomerListScreen extends ConsumerStatefulWidget {
+  const CustomerListScreen({super.key});
+
+  @override
+  ConsumerState<CustomerListScreen> createState() =>
+      _CustomerListScreenState();
+}
+
+class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final notifier = ref.read(customerProvider.notifier);
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      notifier.loadMore();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dataAsync = ref.watch(customerProvider);
+    final notifier = ref.read(customerProvider.notifier);
+
+    return Scaffold(
+      body: SafeArea(
+        child: dataAsync.when(
+          data: (items) => RefreshIndicator(
+            onRefresh: notifier.refresh,
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // 🔍 Search Bar
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  automaticallyImplyLeading: false,
+                  elevation: 2,
+                  titleSpacing: 0,
+                  title: StickySearchBar(
+                    controller: _searchController,
+                    hintText: 'Search customers...',
+                    onChanged: notifier.search,
+                  ),
+                ),
+
+                // 📌 Sort Header Bar
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyHeaderDelegate(
+                    child: Container(
+                      color: Theme.of(context).cardColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Sorted by: ${notifier.sortLabel}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.sort),
+                            onSelected: (value) {
+                              notifier.toggleSort(value);
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'name',
+                                child: Text('Name'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'code',
+                                child: Text('Code'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'address',
+                                child: Text('Address'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'contactNo',
+                                child: Text('Contact No'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 🧾 Customer List
+                SliverList.builder(
+                  itemCount: items.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == items.length) {
+                      if (notifier.hasMore) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      } else {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(child: Text('End of List')),
+                        );
+                      }
+                    }
+
+                    final customer = items[index];
+                    return SwipeableListTile<Customer>(
+                      item: customer,
+                      deleteConfirmMessage:
+                      'Are you sure you want to delete "${customer.name}"?',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CustomerDetailScreen(data: customer),
+                          ),
+                        );
+                      },
+                      onDelete: () async {
+                        if (customer.id != null) {
+                          await ref
+                              .read(customerActionProvider.notifier)
+                              .deleteData(customer.id!);
+                          notifier.refresh();
+                        }
+                      },
+                      contentBuilder: (_, data) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data.name,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('Code: ${data.code}'),
+                          Text('Address: ${data.address}'),
+                          Text('Contact: ${data.contactNo}'),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error: $err')),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CustomerDetailScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// 📌 Sticky Header Delegate
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _StickyHeaderDelegate({required this.child});
+
+  @override
+  double get minExtent => 40;
+  @override
+  double get maxExtent => 40;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_StickyHeaderDelegate oldDelegate) => false;
+}
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import '../models/customer_model.dart';
+// import '../providers/customer_provider.dart';
+// import '../widgets/swipeable_list_tile.dart';
+// import '../widgets/sticky_search_bar.dart';
+// import 'customer_detail_screen.dart';
+//
+// class CustomerListScreen extends ConsumerStatefulWidget {
+//   const CustomerListScreen({super.key});
+//
+//   @override
+//   ConsumerState<CustomerListScreen> createState() =>
+//       _CustomerListScreenState();
+// }
+//
+// class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
+//   final TextEditingController _searchController = TextEditingController();
+//   String _searchQuery = '';
+//
+//   Future<void> _refreshData() async {
+//     ref.invalidate(customerProvider);
+//     await Future.delayed(const Duration(milliseconds: 300));
+//   }
+//
+//   @override
+//   void dispose() {
+//     _searchController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     ref.listen<AsyncValue<void>>(customerActionProvider, (previous, next) {
+//       next.whenOrNull(
+//         data: (_) {
+//           if (!mounted) return;
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(
+//               content: Text('Action completed successfully!'),
+//               backgroundColor: Colors.green,
+//             ),
+//           );
+//           ref.invalidate(customerProvider);
+//         },
+//         error: (error, _) {
+//           if (!mounted) return;
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             SnackBar(
+//               content: Text('Error: $error'),
+//               backgroundColor: Colors.red,
+//             ),
+//           );
+//         },
+//       );
+//     });
+//
+//     final dataAsync = ref.watch(customerProvider);
+//
+//     return Scaffold(
+//       body: SafeArea(
+//         child: dataAsync.when(
+//           data: (items) {
+//             final filteredItems = items
+//                 .where((item) =>
+//                 item.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+//                 .toList();
+//
+//             return RefreshIndicator(
+//               color: Colors.blueAccent,
+//               onRefresh: _refreshData,
+//               child: CustomScrollView(
+//                 slivers: [
+//                   // Sticky Search Bar
+//                   SliverAppBar(
+//                     pinned: true,
+//                     backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+//                     automaticallyImplyLeading: false,
+//                     elevation: 2,
+//                     titleSpacing: 0,
+//                     title: StickySearchBar(
+//                       controller: _searchController,
+//                       hintText: 'Search customers...',
+//                       onChanged: (value) {
+//                         setState(() => _searchQuery = value);
+//                       },
+//                     ),
+//                   ),
+//
+//                   // If no matching results
+//                   if (filteredItems.isEmpty)
+//                     const SliverFillRemaining(
+//                       hasScrollBody: false,
+//                       child: Center(child: Text('No matching customers.')),
+//                     )
+//                   else
+//                     SliverList.builder(
+//                       itemCount: filteredItems.length,
+//                       itemBuilder: (_, index) {
+//                         final item = filteredItems[index];
+//
+//                         return SwipeableListTile<Customer>(
+//                           item: item,
+//                           deleteConfirmMessage:
+//                           'Are you sure you want to delete "${item.name}"?',
+//                           onTap: () {
+//                             Navigator.push(
+//                               context,
+//                               MaterialPageRoute(
+//                                 builder: (_) =>
+//                                     CustomerDetailScreen(data: item),
+//                               ),
+//                             );
+//                           },
+//                           onDelete: () async {
+//                             if (item.id != null) {
+//                               await ref
+//                                   .read(customerActionProvider.notifier)
+//                                   .deleteData(item.id!);
+//                             }
+//                           },
+//                           contentBuilder: (_, data) => Column(
+//                             crossAxisAlignment: CrossAxisAlignment.start,
+//                             children: [
+//                               Text(
+//                                 data.name,
+//                                 style: const TextStyle(
+//                                   fontSize: 16,
+//                                   fontWeight: FontWeight.bold,
+//                                 ),
+//                               ),
+//                               const SizedBox(height: 4),
+//                               Text('Code: ${data.code}',
+//                                   style: const TextStyle(fontSize: 14)),
+//                               Text('Address: ${data.address}',
+//                                   style: const TextStyle(fontSize: 14)),
+//                             ],
+//                           ),
+//                         );
+//                       },
+//                     ),
+//                 ],
+//               ),
+//             );
+//           },
+//           loading: () => const Center(child: CircularProgressIndicator()),
+//           error: (err, _) => Center(child: Text('Error: $err')),
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () => Navigator.push(
+//           context,
+//           MaterialPageRoute(
+//             builder: (_) => const CustomerDetailScreen(),
+//           ),
+//         ),
+//         child: const Icon(Icons.add),
+//       ),
+//     );
+//   }
+// }
+
+

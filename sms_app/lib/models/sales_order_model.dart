@@ -1,5 +1,4 @@
 import 'package:sms_app/models/sales_order_item_model.dart';
-
 import 'customer_model.dart';
 
 class SalesOrder {
@@ -59,6 +58,5 @@ class SalesOrder {
     'GrandTotal': grandTotal,
     'Items': items.map((i) => i.toCreateJson()).toList(),
   };
-
 }
 

@@ -7,7 +7,7 @@ import 'package:sms_app/screens/supplier_list_screen.dart';
 import 'package:sms_app/screens/sales_order_list_screen.dart';
 import 'package:sms_app/screens/product_list_screen.dart';
 import 'package:sms_app/screens/customer_list_screen.dart';
-import '../widgets/coming_soon_placeholder.dart';
+import 'package:sms_app/screens/uom_list_screen.dart';
 import '../widgets/home_dashboard.dart';
 
 class MainTabScreen extends StatefulWidget {
@@ -103,6 +103,11 @@ class _MainTabScreenState extends State<MainTabScreen>
             icon: Icons.people,
             label: "Customer Master",
             page: const CustomerListScreen(),
+          ),
+          _SubMenuItem(
+            icon: Icons.scale,
+            label: "UOM Master",
+            page: const UomListScreen(),
           ),
         ]);
         break;

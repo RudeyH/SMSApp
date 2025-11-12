@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sms_app/screens/uom_lookup_screen.dart';
 import '../models/product_model.dart';
+import '../models/uom_model.dart';
 import '../providers/product_provider.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
@@ -19,7 +21,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   late final TextEditingController _quantityController;
-
+  int? _uomId;
+  UOM? _uom;
+  late TextEditingController _uomNameController;
   bool get isEditing => widget.data != null;
 
   @override
@@ -31,6 +35,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         TextEditingController(text: widget.data?.price.toString() ?? '');
     _quantityController =
         TextEditingController(text: widget.data?.quantity.toString() ?? '');
+    _uomId = widget.data?.uomId ?? 0;
+    _uom = widget.data?.uom; // ✅ no default Uom object
+    _uomNameController = TextEditingController(
+      text: widget.data?.uom.name ?? '',
+    );
   }
 
   @override
@@ -120,6 +129,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       quantity: double.tryParse(
                           _quantityController.text.trim()) ??
                           0,
+                      uomId: _uomId ?? 0,
+                      uom: _uom ?? UOM(id: 0, code: '', name: ''),
                     );
 
                     final notifier =
@@ -131,6 +142,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     }
                   }
                 },
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _selectUom, // 👈 open lookup on tap
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    controller: _uomNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Uom',
+                      suffixIcon: Icon(Icons.search),
+                    ),
+                    validator: (value) => value!.isEmpty
+                        ? 'Please select a uom'
+                        : null,
+                  ),
+                ),
               ),
             ],
           ),
@@ -145,6 +172,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     _nameController.dispose();
     _priceController.dispose();
     _quantityController.dispose();
+    _uomNameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectUom() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UomLookupScreen()),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _uomId = result['uomId'];
+        _uom = result['uom'];
+        _uomNameController.text = result['uomName'];
+      });
+    }
   }
 }

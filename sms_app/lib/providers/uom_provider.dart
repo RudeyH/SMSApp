@@ -4,14 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
-import '../models/product_model.dart';
+import '../models/uom_model.dart';
 
-final String baseUrl = '${Config().baseUrl}/product';
+final String baseUrl = '${Config().baseUrl}/uom';
 
-final productProvider =
-AsyncNotifierProvider<ProductNotifier, List<Product>>(ProductNotifier.new);
+final uomProvider =
+AsyncNotifierProvider<UomNotifier, List<UOM>>(UomNotifier.new);
 
-class ProductNotifier extends AsyncNotifier<List<Product>> {
+class UomNotifier extends AsyncNotifier<List<UOM>> {
   int _currentPage = 1;
   final int _pageSize = 20;
   bool _hasMore = true;
@@ -22,24 +22,24 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
   String get sortLabel => '$_sortField ${_sortAsc ? '↑' : '↓'}';
 
   @override
-  Future<List<Product>> build() async {
+  Future<List<UOM>> build() async {
     await _loadSortPreferences();
     return _fetchPage(reset: true);
   }
 
   Future<void> _loadSortPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    _sortField = prefs.getString('productSortField') ?? 'name';
-    _sortAsc = prefs.getBool('productSortAsc') ?? true;
+    _sortField = prefs.getString('uomSortField') ?? 'name';
+    _sortAsc = prefs.getBool('uomSortAsc') ?? true;
   }
 
   Future<void> _saveSortPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('productSortField', _sortField);
-    await prefs.setBool('productSortAsc', _sortAsc);
+    await prefs.setString('uomSortField', _sortField);
+    await prefs.setBool('uomSortAsc', _sortAsc);
   }
 
-  Future<List<Product>> _fetchPage({bool reset = false}) async {
+  Future<List<UOM>> _fetchPage({bool reset = false}) async {
     if (reset) {
       _currentPage = 1;
       _hasMore = true;
@@ -54,33 +54,27 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
       final List<dynamic> data = jsonDecode(response.body);
       if (data.length < _pageSize) _hasMore = false;
 
-      List<Product> products =
-      data.map((e) => Product.fromJson(e)).toList();
+      List<UOM> uoms =
+      data.map((e) => UOM.fromJson(e)).toList();
 
-      _applySort(products);
+      _applySort(uoms);
 
       if (!reset) {
         final current = state.value ?? [];
-        return [...current, ...products];
+        return [...current, ...uoms];
       }
-      return products;
+      return uoms;
     } else {
       throw Exception('Failed to load data');
     }
   }
 
-  void _applySort(List<Product> list) {
+  void _applySort(List<UOM> list) {
     list.sort((a, b) {
       int compare;
       switch (_sortField) {
         case 'code':
           compare = a.code.compareTo(b.code);
-          break;
-        case 'price':
-          compare = a.price.compareTo(b.price);
-          break;
-        case 'quantity':
-          compare = a.quantity.compareTo(b.quantity);
           break;
         default:
           compare = a.name.compareTo(b.name);
@@ -116,52 +110,22 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
     refresh();
   }
 }
-// import 'dart:async';
-// import 'dart:convert';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:http/http.dart' as http;
-// import '../config.dart';
-// import '../models/product_model.dart';
-//
-// final String baseUrl =  '${Config().baseUrl}/product';
-//
-// /// ✅ This provider manages fetching (GET) all products
-// final productProvider =
-// AsyncNotifierProvider<ProductNotifier, List<Product>>(ProductNotifier.new);
-//
-// class ProductNotifier extends AsyncNotifier<List<Product>> {
-//   @override
-//   FutureOr<List<Product>> build() async {
-//     return listData();
-//   }
-//
-//   Future<List<Product>> listData() async {
-//     final response = await http.get(Uri.parse(baseUrl));
-//     if (response.statusCode == 200) {
-//       final List<dynamic> data = jsonDecode(response.body);
-//       return data.map((item) => Product.fromJson(item)).toList();
-//     } else {
-//       throw Exception('Failed to load data');
-//     }
-//   }
-// }
-
 
 /// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
-final productActionProvider =
-AsyncNotifierProvider<ProductActionNotifier, void>(ProductActionNotifier.new);
+final uomActionProvider =
+AsyncNotifierProvider<UomActionNotifier, void>(UomActionNotifier.new);
 
-class ProductActionNotifier extends AsyncNotifier<void> {
+class UomActionNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {}
 
-  Future<void> createData(Product data) async {
+  Future<void> createData(UOM data) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toCreateJson()),
+        body: jsonEncode(data.toJson()),
       );
       if (response.statusCode != 201 && response.statusCode != 200) {
         throw Exception('Failed to create data');
@@ -169,7 +133,7 @@ class ProductActionNotifier extends AsyncNotifier<void> {
     });
   }
 
-  Future<void> updateData(Product data) async {
+  Future<void> updateData(UOM data) async {
     if (data.id == null) {
       throw Exception('Cannot update data without ID');
     }
@@ -179,7 +143,7 @@ class ProductActionNotifier extends AsyncNotifier<void> {
       final response = await http.put(
         Uri.parse(baseUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toUpdateJson()),
+        body: jsonEncode(data.toJson()),
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {

@@ -42,8 +42,8 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
             SnackBar(
               content: Text(
                 isEditing
-                    ? 'Customer updated successfully!'
-                    : 'Customer created successfully!',
+                    ? 'Data updated successfully!'
+                    : 'Data created successfully!',
               ),
               backgroundColor: Colors.green,
             ),
@@ -66,7 +66,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Customer' : 'Add Customer'),
+        title: Text(isEditing ? 'Edit Data' : 'Add Data'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -104,7 +104,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                   ? const CircularProgressIndicator()
                   : ElevatedButton.icon(
                 icon: Icon(isEditing ? Icons.save : Icons.add),
-                label: Text(isEditing ? 'Update Customer' : 'Save Customer'),
+                label: Text(isEditing ? 'Update Data' : 'Save Data'),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final product = Customer(

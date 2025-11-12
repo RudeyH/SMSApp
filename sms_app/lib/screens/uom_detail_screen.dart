@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/supplier_model.dart';
-import '../providers/supplier_provider.dart';
+import '../models/uom_model.dart';
+import '../providers/uom_provider.dart';
 
-class SupplierDetailScreen extends ConsumerStatefulWidget {
-  final Supplier? data;
+class UomDetailScreen extends ConsumerStatefulWidget {
+  final UOM? data;
 
-  const SupplierDetailScreen({super.key, this.data});
+  const UomDetailScreen({super.key, this.data});
 
   @override
-  ConsumerState<SupplierDetailScreen> createState() =>
-      _SupplierDetailScreenState();
+  ConsumerState<UomDetailScreen> createState() =>
+      _UomDetailScreenState();
 }
 
-class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
+class _UomDetailScreenState extends ConsumerState<UomDetailScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _codeController;
   late final TextEditingController _nameController;
-  late final TextEditingController _addressController;
-  late final TextEditingController _contactNoController;
 
   bool get isEditing => widget.data != null;
 
@@ -27,14 +25,12 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
     super.initState();
     _codeController = TextEditingController(text: widget.data?.code ?? '');
     _nameController = TextEditingController(text: widget.data?.name ?? '');
-    _addressController = TextEditingController(text: widget.data?.address ?? '');
-    _contactNoController = TextEditingController(text: widget.data?.contactNo ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
     // ✅ Safe placement for ref.listen
-    ref.listen<AsyncValue<void>>(supplierActionProvider, (previous, next) {
+    ref.listen<AsyncValue<void>>(uomActionProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
           if (!mounted) return;
@@ -62,7 +58,7 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
       );
     });
 
-    final actionState = ref.watch(supplierActionProvider);
+    final actionState = ref.watch(uomActionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -76,28 +72,16 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
             children: [
               TextFormField(
                 controller: _codeController,
-                decoration: const InputDecoration(labelText: 'Supplier Code'),
+                decoration: const InputDecoration(labelText: 'UOM Code'),
                 readOnly: isEditing,
                 validator: (value) =>
                 value!.isEmpty ? 'Please enter a code' : null,
               ),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Supplier Name'),
+                decoration: const InputDecoration(labelText: 'UOM Name'),
                 validator: (value) =>
                 value!.isEmpty ? 'Please enter a name' : null,
-              ),
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(labelText: 'Supplier Address'),
-                validator: (value) =>
-                value!.isEmpty ? 'Please enter an address' : null,
-              ),
-              TextFormField(
-                controller: _contactNoController,
-                decoration: const InputDecoration(labelText: 'Supplier Contact No'),
-                validator: (value) =>
-                value!.isEmpty ? 'Please enter a contact no' : null,
               ),
               const SizedBox(height: 24),
               actionState.isLoading
@@ -107,20 +91,18 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
                 label: Text(isEditing ? 'Update Data' : 'Save Data'),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    final product = Supplier(
+                    final data = UOM(
                       id: widget.data?.id ?? 0,
                       code: _codeController.text.trim(),
                       name: _nameController.text.trim(),
-                      address: _addressController.text.trim(),
-                      contactNo: _contactNoController.text.trim(),
                     );
 
                     final notifier =
-                    ref.read(supplierActionProvider.notifier);
+                    ref.read(uomActionProvider.notifier);
                     if (isEditing) {
-                      notifier.updateData(product);
+                      notifier.updateData(data);
                     } else {
-                      notifier.createData(product);
+                      notifier.createData(data);
                     }
                   }
                 },
@@ -136,8 +118,6 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
   void dispose() {
     _codeController.dispose();
     _nameController.dispose();
-    _addressController.dispose();
-    _contactNoController.dispose();
     super.dispose();
   }
 }

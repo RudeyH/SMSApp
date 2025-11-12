@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/customer_model.dart';
-import '../providers/customer_provider.dart';
+import '../models/uom_model.dart';
+import '../providers/uom_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
 
-class CustomerLookupScreen extends ConsumerStatefulWidget {
-  const CustomerLookupScreen({super.key});
+class UomLookupScreen extends ConsumerStatefulWidget {
+  const UomLookupScreen({super.key});
 
   @override
-  ConsumerState<CustomerLookupScreen> createState() =>
-      _CustomerLookupScreenState();
+  ConsumerState<UomLookupScreen> createState() =>
+      _UomLookupScreenState();
 }
 
-class _CustomerLookupScreenState extends ConsumerState<CustomerLookupScreen> {
+class _UomLookupScreenState extends ConsumerState<UomLookupScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   Future<void> _refreshData() async {
-    ref.invalidate(customerProvider);
+    ref.invalidate(uomProvider);
     await Future.delayed(const Duration(milliseconds: 300));
   }
 
   @override
   Widget build(BuildContext context) {
-    final asyncCustomers = ref.watch(customerProvider);
+    final asyncUoms = ref.watch(uomProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Customer')),
+      appBar: AppBar(title: const Text('Select Uom')),
       body: Column(
         children: [
           // 🔍 Search bar
@@ -49,20 +49,20 @@ class _CustomerLookupScreenState extends ConsumerState<CustomerLookupScreen> {
             ),
           ),
 
-          // 📋 Customer list
+          // 📋 Uom list
           Expanded(
-            child: asyncCustomers.when(
-              data: (customers) {
+            child: asyncUoms.when(
+              data: (uoms) {
                 final query = _searchController.text.toLowerCase();
 
-                final filteredCustomers = customers.where((c) {
+                final filteredUoms = uoms.where((c) {
                   return c.code.toLowerCase().contains(query) ||
                       c.name.toLowerCase().contains(query);
                 }).toList();
 
-                if (filteredCustomers.isEmpty) {
+                if (filteredUoms.isEmpty) {
                   return const Center(
-                    child: Text('No customers match your search.'),
+                    child: Text('No uom match your search.'),
                   );
                 }
 
@@ -71,27 +71,27 @@ class _CustomerLookupScreenState extends ConsumerState<CustomerLookupScreen> {
                   onRefresh: _refreshData,
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: filteredCustomers.length,
+                    itemCount: filteredUoms.length,
                     itemBuilder: (context, index) {
-                      final c = filteredCustomers[index];
+                      final c = filteredUoms[index];
 
-                      return SwipeableListTile<Customer>(
+                      return SwipeableListTile<UOM>(
                         item: c,
                         enableDelete: false, // 👈 disables swipe-to-delete
                         onTap: () {
                           Navigator.pop(context, {
-                            'customerId': c.id,
-                            'customer': c,
-                            'customerName': c.name,
+                            'uomId': c.id,
+                            'uom': c,
+                            'uomName': c.name,
                           });
                         },
                         // You can leave onDelete null if lookup shouldn’t delete
                         onDelete: () async {
                           if (c.id != null) {
                             await ref
-                                .read(customerActionProvider.notifier)
+                                .read(uomActionProvider.notifier)
                                 .deleteData(c.id!);
-                            ref.invalidate(customerProvider);
+                            ref.invalidate(uomProvider);
                           }
                         },
                         contentBuilder: (_, data) => Column(
@@ -104,11 +104,6 @@ class _CustomerLookupScreenState extends ConsumerState<CustomerLookupScreen> {
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text('Address: ${data.address}',
-                                style: const TextStyle(fontSize: 14)),
-                            Text('Contact: ${data.contactNo}',
-                                style: const TextStyle(fontSize: 14)),
                           ],
                         ),
                       );

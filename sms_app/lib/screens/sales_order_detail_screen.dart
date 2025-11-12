@@ -40,7 +40,6 @@ class _SalesOrderDetailScreenState
 
     _customerId = widget.data?.customerId ?? 0;
     _customer = widget.data?.customer; // ✅ no default Customer object
-
     _customerNameController = TextEditingController(
       text: widget.data?.customer.name ?? '',
     );
@@ -249,7 +248,7 @@ class _SalesOrderDetailScreenState
         code: e.product.code,
         name: e.product.name,
         qty: e.quantity.toInt(),
-        unit: 'Pcs',
+        unit: e.product.uom.code,
         price: e.unitPrice,
       );
     }).toList();

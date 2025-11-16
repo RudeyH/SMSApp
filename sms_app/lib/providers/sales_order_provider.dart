@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../models/sales_order_item_model.dart';
 import '../models/sales_order_model.dart';
+import '../utils/json_utils.dart';
 
 final String baseUrl = '${Config().baseUrl}/salesorder';
 
@@ -114,7 +116,6 @@ class SalesOrderNotifier extends AsyncNotifier<List<SalesOrder>> {
   }
 }
 
-/// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
 final salesOrderActionProvider =
 AsyncNotifierProvider<SalesOrderActionNotifier, void>(SalesOrderActionNotifier.new);
 
@@ -169,5 +170,58 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
         throw Exception('Failed to delete data');
       }
     });
+  }
+
+  Future<SalesOrder> createOrderWithoutItems(SalesOrder data) async {
+    final resp = await http.post(
+      Uri.parse(baseUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data.toCreateJson()),
+    );
+
+    if (resp.statusCode == 200 || resp.statusCode == 201) {
+      final Map<String, dynamic> body = jsonDecode(resp.body);
+      return SalesOrder.fromJson(JsonUtils.ensureMap(body));
+    } else {
+      throw Exception('Failed to create order: ${resp.statusCode} ${resp.body}');
+    }
+  }
+
+  Future<SalesOrderItem> addItemToOrder(int orderId, SalesOrderItem item) async {
+    final dto = {
+      "productId": item.product.id,
+      "quantity": item.quantity,
+      "unitPrice": item.unitPrice,
+    };
+    final resp = await http.post(
+      Uri.parse('$baseUrl/$orderId/items'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(dto),
+    );
+
+    if (resp.statusCode == 200 || resp.statusCode == 201) {
+      final body = jsonDecode(resp.body);
+      return SalesOrderItem.fromJson(JsonUtils.ensureMap(body));
+    } else {
+      throw Exception('Failed to add item: ${resp.statusCode} ${resp.body}');
+    }
+  }
+
+  Future<void> deleteOrderItem(int itemId) async {
+    final resp = await http.delete(Uri.parse('$baseUrl/items/$itemId'));
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw Exception('Failed to delete item: ${resp.statusCode} ${resp.body}');
+    }
+  }
+
+  Future<void> updateOrderCustomer(int orderId, int customerId) async {
+    final resp = await http.put(
+      Uri.parse('$baseUrl/$orderId/customer'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"customerId": customerId}),
+    );
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw Exception('Failed to update customer: ${resp.statusCode} ${resp.body}');
+    }
   }
 }

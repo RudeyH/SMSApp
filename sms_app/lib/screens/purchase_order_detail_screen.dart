@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/supplier_model.dart';
 import '../models/purchase_order_item_model.dart';
 import '../models/purchase_order_model.dart';
+import '../providers/product_provider.dart';
 import '../providers/purchase_order_provider.dart';
 import 'supplier_lookup_screen.dart';
 import 'product_lookup_screen.dart';
@@ -165,6 +166,7 @@ class _PurchaseOrderDetailScreenState
                     } else {
                       notifier.createData(data);
                     }
+                    ref.invalidate(productProvider);
                   }
                 },
               ),

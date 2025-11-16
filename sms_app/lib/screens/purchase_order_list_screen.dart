@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/purchase_order_model.dart';
+import '../providers/product_provider.dart';
 import '../providers/purchase_order_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
 import '../widgets/sticky_search_bar.dart';
@@ -148,6 +149,7 @@ class _PurchaseOrderListScreenState
                           await ref
                               .read(purchaseOrderActionProvider.notifier)
                               .deleteData(order.id!);
+                          ref.invalidate(productProvider);
                         }
                       },
                       contentBuilder: (_, data) => Column(

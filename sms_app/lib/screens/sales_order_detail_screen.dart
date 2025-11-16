@@ -4,6 +4,7 @@ import 'package:printing/printing.dart';
 import '../models/customer_model.dart';
 import '../models/sales_order_item_model.dart';
 import '../models/sales_order_model.dart';
+import '../providers/product_provider.dart';
 import '../providers/sales_order_provider.dart';
 import '../reports/sales_order_invoice_pdf.dart';
 import 'customer_lookup_screen.dart';
@@ -28,6 +29,7 @@ class _SalesOrderDetailScreenState
   late TextEditingController _customerNameController;
   late DateTime transDate;
   late List<SalesOrderItem> items;
+  int? _orderId;
   bool get isEditing => widget.data != null;
 
   @override
@@ -38,6 +40,7 @@ class _SalesOrderDetailScreenState
       text: widget.data?.transNumber ?? 'SO-${DateTime.now().millisecondsSinceEpoch}',
     );
 
+    _orderId = widget.data?.id;
     _customerId = widget.data?.customerId ?? 0;
     _customer = widget.data?.customer; // ✅ no default Customer object
     _customerNameController = TextEditingController(
@@ -51,6 +54,7 @@ class _SalesOrderDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final actionState = ref.watch(salesOrderActionProvider);
     ref.listen<AsyncValue<void>>(salesOrderActionProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
@@ -79,7 +83,7 @@ class _SalesOrderDetailScreenState
       );
     });
 
-    final actionState = ref.watch(salesOrderActionProvider);
+    // final actionState = ref.watch(salesOrderActionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -137,46 +141,28 @@ class _SalesOrderDetailScreenState
                           'Qty: ${item.quantity} × ${item.unitPrice.toStringAsFixed(2)}'),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeItem(item),
+                        onPressed: () => _onDeleteItem(item),
                       ),
                     );
                   },
                 ),
               ),
               const SizedBox(height: 10),
-              ElevatedButton.icon(
+              // ElevatedButton.icon(
+              //   icon: const Icon(Icons.add),
+              //   label: const Text('Add Item'),
+              //   onPressed: _addItem,
+              // ),
+              actionState.isLoading
+                  ? const CircularProgressIndicator()
+                  : Visibility(
+                visible: (_orderId != null),
+                child: ElevatedButton.icon(
                 icon: const Icon(Icons.add),
                 label: const Text('Add Item'),
                 onPressed: _addItem,
               ),
-              const SizedBox(height: 12),
-              actionState.isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton.icon(
-                icon: Icon(isEditing ? Icons.save : Icons.add),
-                label: Text(isEditing ? 'Update Data' : 'Save Data'),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final data = SalesOrder(
-                      id: widget.data?.id,
-                      transNumber: _transNumberController.text,
-                      transDate: transDate,
-                      customerId: _customerId ?? 0,
-                      customer: _customer ?? Customer(id: 0, code: '', name: '', address: '', contactNo: ''),
-                      grandTotal: totalAmount,
-                      items: items,
-                    );
-
-                    final notifier =
-                    ref.read(salesOrderActionProvider.notifier);
-                    if (isEditing) {
-                      notifier.updateData(data);
-                    } else {
-                      notifier.createData(data);
-                    }
-                  }
-                },
-              ),
+              )
             ],
           ),
         ),
@@ -200,37 +186,163 @@ class _SalesOrderDetailScreenState
   }
 
   Future<void> _selectCustomer() async {
+    // Wait for customer selection screen
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CustomerLookupScreen()),
     );
 
-    if (result != null && mounted) {
+    // If the widget is disposed before result returns, exit early
+    if (!mounted) return;
+
+    // If user selected a customer
+    if (result != null) {
+      final selectedCustomerId = result['customerId'] as int;
+      final selectedCustomer = result['customer'] as Customer;
+
       setState(() {
-        _customerId = result['customerId'];
-        _customer = result['customer'];
-        _customerNameController.text = result['customerName'];
+        _customerId = selectedCustomerId;
+        _customer = selectedCustomer;
+        _customerNameController.text =
+            result['customerName'] ?? selectedCustomer.name;
       });
+
+      // If adding new order and order not created yet -> create it immediately
+      if (!isEditing && _orderId == null) {
+        final order = SalesOrder(
+          transNumber: _transNumberController.text,
+          transDate: transDate,
+          customerId: _customerId ?? 0,
+          customer: _customer ??
+              Customer(
+                id: 0,
+                code: '',
+                name: '',
+                address: '',
+                contactNo: '',
+              ),
+          grandTotal: totalAmount,
+          items: [],
+        );
+
+        try {
+          final created = await ref
+              .read(salesOrderActionProvider.notifier)
+              .createOrderWithoutItems(order);
+
+          if (!mounted) return; // ✅ prevent context usage if disposed
+
+          setState(() {
+            _orderId = created.id;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Order created')),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to create order: $e')),
+          );
+        }
+      } else if (isEditing && _orderId != null) {
+        // Update customer immediately for existing order
+        try {
+          await ref
+              .read(salesOrderActionProvider.notifier)
+              .updateOrderCustomer(_orderId!, _customerId!);
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Customer updated')),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update customer: $e')),
+          );
+        }
+      }
     }
   }
 
   Future<void> _addItem() async {
+    // Navigate to product lookup
     final newItem = await Navigator.push<SalesOrderItem>(
       context,
       MaterialPageRoute(builder: (_) => const ProductLookupScreen(source: 'sales')),
     );
-    if (newItem != null) {
-      setState(() {
-        items.add(newItem);
-      });
+
+    if (!mounted) return; // ✅ safeguard after Navigator.push
+
+    // Only proceed if user selected a product and order exists
+    if (newItem != null && _orderId != null) {
+      try {
+        final createdItem = await ref
+            .read(salesOrderActionProvider.notifier)
+            .addItemToOrder(_orderId!, newItem);
+
+        if (!mounted) return; // ✅ safeguard after await
+
+        setState(() {
+          // Ensure product info is present for UI display
+          final itemWithProduct = SalesOrderItem(
+            id: createdItem.id,
+            salesOrderId: _orderId!,
+            productId: createdItem.productId,
+            product: newItem.product, // reuse from lookup for display
+            quantity: createdItem.quantity,
+            unitPrice: createdItem.unitPrice,
+          );
+          items.add(itemWithProduct);
+        });
+
+        ref.invalidate(productProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item added')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add item: $e')),
+        );
+      }
     }
   }
 
-  void _removeItem(SalesOrderItem item) {
-    setState(() {
-      items.remove(item);
-    });
+  Future<void> _onDeleteItem(SalesOrderItem item) async {
+    // If the item isn’t saved to backend yet, remove locally
+    if (item.id == null || item.id == 0) {
+      setState(() {
+        items.remove(item);
+      });
+      return;
+    }
+
+    try {
+      await ref
+          .read(salesOrderActionProvider.notifier)
+          .deleteOrderItem(item.id!);
+
+      if (!mounted) return; // ✅ safeguard after await
+
+      setState(() {
+        items.removeWhere((i) => i.id == item.id);
+      });
+
+      ref.invalidate(productProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Item removed')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete item: $e')),
+      );
+    }
   }
+
 
   double get totalAmount =>
       items.fold(0, (sum, item) => sum + (item.quantity * item.unitPrice));

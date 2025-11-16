@@ -113,35 +113,6 @@ class PurchaseOrderNotifier extends AsyncNotifier<List<PurchaseOrder>> {
     refresh();
   }
 }
-// import 'dart:async';
-// import 'dart:convert';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:http/http.dart' as http;
-// import 'package:sms_app/models/purchase_order_model.dart';
-// import '../config.dart';
-//
-// final String baseUrl =  '${Config().baseUrl}/purchaseorder';
-//
-// /// ✅ This provider manages fetching (GET) all PurchaseOrders
-// final purchaseOrderProvider =
-// AsyncNotifierProvider<PurchaseOrderNotifier, List<PurchaseOrder>>(PurchaseOrderNotifier.new);
-//
-// class PurchaseOrderNotifier extends AsyncNotifier<List<PurchaseOrder>> {
-//   @override
-//   FutureOr<List<PurchaseOrder>> build() async {
-//     return listData();
-//   }
-//
-//   Future<List<PurchaseOrder>> listData() async {
-//     final response = await http.get(Uri.parse(baseUrl));
-//     if (response.statusCode == 200) {
-//       final List<dynamic> data = jsonDecode(response.body);
-//       return data.map((item) => PurchaseOrder.fromJson(item)).toList();
-//     } else {
-//       throw Exception('Failed to load data');
-//     }
-//   }
-// }
 
 /// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
 final purchaseOrderActionProvider =
@@ -162,6 +133,9 @@ class PurchaseOrderActionNotifier extends AsyncNotifier<void> {
       if (response.statusCode != 201 && response.statusCode != 200) {
         throw Exception('Failed to create data');
       }
+      else {
+        ref.invalidate(purchaseOrderProvider);
+      }
     });
   }
 
@@ -177,9 +151,11 @@ class PurchaseOrderActionNotifier extends AsyncNotifier<void> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(data.toUpdateJson()),
       );
-
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to update data');
+      }
+      else {
+        ref.invalidate(purchaseOrderProvider);
       }
     });
   }

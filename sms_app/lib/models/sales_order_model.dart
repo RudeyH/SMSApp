@@ -1,4 +1,5 @@
 import 'package:sms_app/models/sales_order_item_model.dart';
+import '../utils/json_utils.dart';
 import 'customer_model.dart';
 
 class SalesOrder {
@@ -20,17 +21,34 @@ class SalesOrder {
     required this.items,
   });
 
-    factory SalesOrder.fromJson(Map<String, dynamic> json) => SalesOrder(
-    id: json['Id'],
-    transNumber: json['TransNumber'],
-    transDate: DateTime.parse(json['TransDate']),
-    customerId: json['CustomerId'],
-    customer: Customer.fromJson(json['Customer']),
-    grandTotal: json['GrandTotal'],
-    items: (json['Items'] as List)
-        .map((i) => SalesOrderItem.fromJson(i))
-        .toList(),
-  );
+  factory SalesOrder.fromJson(Map<String, dynamic>? json) {
+    json = json ?? {};
+
+    return SalesOrder(
+      id: JsonUtils.parseInt(json['Id']),
+      transNumber: JsonUtils.parseString(json['TransNumber']),
+      transDate: _parseDate(json['TransDate']),
+      customerId: JsonUtils.parseInt(json['CustomerId']) ?? 0,
+      customer: Customer.fromJson(JsonUtils.ensureMap(json['Customer'])),
+      grandTotal: JsonUtils.parseDouble(json['GrandTotal']),
+      items: _parseItems(json['Items']),
+    );
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is DateTime) return value;
+    final str = JsonUtils.parseString(value);
+    return DateTime.tryParse(str) ?? DateTime.now();
+  }
+
+  static List<SalesOrderItem> _parseItems(dynamic items) {
+    if (items is List) {
+      return items
+          .map((e) => SalesOrderItem.fromJson(JsonUtils.ensureMap(e)))
+          .toList();
+    }
+    return <SalesOrderItem>[];
+  }
 
   Map<String, dynamic> toJson() => {
     'Id': id,

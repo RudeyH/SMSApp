@@ -111,6 +111,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 validator: (value) =>
                 value!.isEmpty ? 'Please enter the quantity' : null,
               ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _selectUom, // 👈 open lookup on tap
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    controller: _uomNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Uom',
+                      suffixIcon: Icon(Icons.search),
+                    ),
+                    validator: (value) => value!.isEmpty
+                        ? 'Please select a uom'
+                        : null,
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
               actionState.isLoading
                   ? const CircularProgressIndicator()
@@ -142,22 +158,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     }
                   }
                 },
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _selectUom, // 👈 open lookup on tap
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    controller: _uomNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Uom',
-                      suffixIcon: Icon(Icons.search),
-                    ),
-                    validator: (value) => value!.isEmpty
-                        ? 'Please select a uom'
-                        : null,
-                  ),
-                ),
               ),
             ],
           ),

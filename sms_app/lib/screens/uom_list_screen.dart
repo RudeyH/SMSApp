@@ -100,14 +100,6 @@ class _UomListScreenState extends ConsumerState<UomListScreen> {
                                 value: 'code',
                                 child: Text('Code'),
                               ),
-                              const PopupMenuItem(
-                                value: 'address',
-                                child: Text('Address'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'contactNo',
-                                child: Text('Contact No'),
-                              ),
                             ],
                           ),
                         ],

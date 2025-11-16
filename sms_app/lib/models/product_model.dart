@@ -1,5 +1,7 @@
 import 'package:sms_app/models/uom_model.dart';
 
+import '../utils/json_utils.dart';
+
 class Product {
   final int? id;
   final String code;
@@ -19,21 +21,16 @@ class Product {
     required this.uom,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
+  factory Product.fromJson(Map<String, dynamic>? json) {
+    json = json ?? {};
     return Product(
-      id: json['Id'] is int
-          ? json['Id']
-          : int.tryParse(json['Id']?.toString() ?? ''),
-      code: json['Code'] ?? '',
-      name: json['Name'] ?? '',
-      price: (json['Price'] is num)
-          ? (json['Price'] as num).toDouble()
-          : double.tryParse(json['Price']?.toString() ?? '0') ?? 0,
-      quantity: (json['Quantity'] is num)
-          ? (json['Quantity'] as num).toDouble()
-          : double.tryParse(json['Quantity']?.toString() ?? '0') ?? 0,
-      uomId: json['UOMId'],
-      uom: UOM.fromJson(json['UOM']),
+      id: JsonUtils.parseInt(json['Id']),
+      code: JsonUtils.parseString(json['Code']),
+      name: JsonUtils.parseString(json['Name']),
+      price: JsonUtils.parseDouble(json['Price']),
+      quantity: JsonUtils.parseDouble(json['Quantity']),
+      uomId: JsonUtils.parseInt(json['UOMId']) ?? 0,
+      uom: UOM.fromJson(JsonUtils.ensureMap(json['UOM'])),
     );
   }
 

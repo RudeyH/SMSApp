@@ -32,7 +32,7 @@ class _PurchaseOrderDetailScreenState
   void initState() {
     super.initState();
     _transNumberController =
-        TextEditingController(text: widget.data?.transNumber ?? 'SO-${DateTime.now().millisecondsSinceEpoch}');
+        TextEditingController(text: widget.data?.transNumber ?? 'PO-${DateTime.now().millisecondsSinceEpoch}');
     _supplierId = widget.data?.supplierId ?? 0;
     _supplier = widget.data?.supplier;
     _supplierNameController = TextEditingController(text: widget.data?.supplier.name ?? '');

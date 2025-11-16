@@ -1,4 +1,5 @@
 import '../models/purchase_order_item_model.dart';
+import '../utils/json_utils.dart';
 import 'supplier_model.dart';
 
 class PurchaseOrder {
@@ -20,17 +21,34 @@ class PurchaseOrder {
     required this.items,
   });
 
-  factory PurchaseOrder.fromJson(Map<String, dynamic> json) => PurchaseOrder(
-    id: json['Id'],
-    transNumber: json['TransNumber'],
-    transDate: DateTime.parse(json['TransDate']),
-    supplierId: json['SupplierId'],
-    supplier: Supplier.fromJson(json['Supplier']),
-    grandTotal: json['GrandTotal'],
-    items: (json['Items'] as List)
-        .map((i) => PurchaseOrderItem.fromJson(i))
-        .toList(),
-  );
+  factory PurchaseOrder.fromJson(Map<String, dynamic>? json) {
+    json = json ?? {};
+    return PurchaseOrder(
+      id: JsonUtils.parseInt(json['Id']),
+      transNumber: JsonUtils.parseString(json['TransNumber']),
+      transDate: _parseDate(json['TransDate']),
+      supplierId: JsonUtils.parseInt(json['SupplierId']) ?? 0,
+      supplier: Supplier.fromJson(JsonUtils.ensureMap(json['Supplier'])),
+      grandTotal: JsonUtils.parseDouble(json['GrandTotal']),
+      items: _parseItems(json['Items']),
+    );
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is DateTime) return value;
+
+    final s = JsonUtils.parseString(value);
+    return DateTime.tryParse(s) ?? DateTime.now();
+  }
+
+  static List<PurchaseOrderItem> _parseItems(dynamic value) {
+    if (value is List) {
+      return value
+          .map((e) => PurchaseOrderItem.fromJson(JsonUtils.ensureMap(e)))
+          .toList();
+    }
+    return <PurchaseOrderItem>[];
+  }
 
   Map<String, dynamic> toJson() => {
     'Id': id,

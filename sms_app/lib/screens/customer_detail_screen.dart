@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/customer_model.dart';
 import '../providers/customer_provider.dart';
@@ -95,9 +96,12 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
               ),
               TextFormField(
                 controller: _contactNoController,
-                decoration: const InputDecoration(labelText: 'Customer Contact No'),
-                validator: (value) =>
-                value!.isEmpty ? 'Please enter a contact no' : null,
+                decoration: const InputDecoration(labelText: 'Supplier Contact No'),
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                ],
+                validator: validatePhoneIndonesia,
               ),
               const SizedBox(height: 24),
               actionState.isLoading
@@ -139,5 +143,30 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
     _addressController.dispose();
     _contactNoController.dispose();
     super.dispose();
+  }
+
+  String? validatePhoneIndonesia(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a contact number';
+    }
+
+    final cleaned = value.replaceAll(RegExp(r'[^0-9+]'), '');
+
+    // +62xxxxxxxxxx
+    if (RegExp(r'^\+62[0-9]{8,13}$').hasMatch(cleaned)) {
+      return null;
+    }
+
+    // 62xxxxxxxxxx (no +)
+    if (RegExp(r'^62[0-9]{8,13}$').hasMatch(cleaned)) {
+      return null;
+    }
+
+    // 08xxxxxxxxxx
+    if (RegExp(r'^0[0-9]{9,13}$').hasMatch(cleaned)) {
+      return null;
+    }
+
+    return 'Invalid Indonesian phone number format';
   }
 }

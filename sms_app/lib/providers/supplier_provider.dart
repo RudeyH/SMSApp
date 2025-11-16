@@ -133,6 +133,9 @@ class SupplierActionNotifier extends AsyncNotifier<void> {
       if (response.statusCode != 201 && response.statusCode != 200) {
         throw Exception('Failed to create data');
       }
+      else {
+        ref.invalidate(supplierProvider);
+      }
     });
   }
 
@@ -151,6 +154,9 @@ class SupplierActionNotifier extends AsyncNotifier<void> {
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to update data');
+      }
+      else {
+        ref.invalidate(supplierProvider);
       }
     });
   }

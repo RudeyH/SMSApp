@@ -116,36 +116,6 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
     refresh();
   }
 }
-// import 'dart:async';
-// import 'dart:convert';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:http/http.dart' as http;
-// import '../config.dart';
-// import '../models/product_model.dart';
-//
-// final String baseUrl =  '${Config().baseUrl}/product';
-//
-// /// ✅ This provider manages fetching (GET) all products
-// final productProvider =
-// AsyncNotifierProvider<ProductNotifier, List<Product>>(ProductNotifier.new);
-//
-// class ProductNotifier extends AsyncNotifier<List<Product>> {
-//   @override
-//   FutureOr<List<Product>> build() async {
-//     return listData();
-//   }
-//
-//   Future<List<Product>> listData() async {
-//     final response = await http.get(Uri.parse(baseUrl));
-//     if (response.statusCode == 200) {
-//       final List<dynamic> data = jsonDecode(response.body);
-//       return data.map((item) => Product.fromJson(item)).toList();
-//     } else {
-//       throw Exception('Failed to load data');
-//     }
-//   }
-// }
-
 
 /// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
 final productActionProvider =
@@ -166,6 +136,9 @@ class ProductActionNotifier extends AsyncNotifier<void> {
       if (response.statusCode != 201 && response.statusCode != 200) {
         throw Exception('Failed to create data');
       }
+      else {
+        ref.invalidate(productProvider);
+      }
     });
   }
 
@@ -184,6 +157,9 @@ class ProductActionNotifier extends AsyncNotifier<void> {
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to update data');
+      }
+      else {
+        ref.invalidate(productProvider);
       }
     });
   }

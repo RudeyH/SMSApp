@@ -1,4 +1,5 @@
 import '../models/product_model.dart';
+import '../utils/json_utils.dart';
 
 class SalesOrderItem {
   int? id;
@@ -19,14 +20,18 @@ class SalesOrderItem {
     required this.unitPrice,
   });
 
-    factory SalesOrderItem.fromJson(Map<String, dynamic> json) => SalesOrderItem(
-    id: json['Id'],
-    salesOrderId: json['SalesOrderId'],
-    productId: json['ProductId'],
-    product: Product.fromJson(json['Product']),
-    quantity: (json['Quantity'] as num).toDouble(),
-    unitPrice: (json['UnitPrice'] as num).toDouble(),
-  );
+  factory SalesOrderItem.fromJson(Map<String, dynamic>? json) {
+    json = json ?? {};
+    return SalesOrderItem(
+      id: JsonUtils.parseInt(json['Id']),
+      salesOrderId: JsonUtils.parseInt(json['SalesOrderId']),
+      salesOrder: JsonUtils.parseString(json['SalesOrder']),
+      productId: JsonUtils.parseInt(json['ProductId']) ?? 0,
+      product: Product.fromJson(JsonUtils.ensureMap(json['Product'])),
+      quantity: JsonUtils.parseDouble(json['Quantity']),
+      unitPrice: JsonUtils.parseDouble(json['UnitPrice']),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'Id': id,

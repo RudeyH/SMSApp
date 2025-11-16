@@ -1,3 +1,5 @@
+import '../utils/json_utils.dart';
+
 class Supplier {
   final int? id;
   final String code;
@@ -13,15 +15,14 @@ class Supplier {
     required this.contactNo,
   });
 
-  factory Supplier.fromJson(Map<String, dynamic> json) {
+  factory Supplier.fromJson(Map<String, dynamic>? json) {
+    json = json ?? {};
     return Supplier(
-      id: json['Id'] is int
-          ? json['Id']
-          : int.tryParse(json['Id']?.toString() ?? ''),
-      code: json['Code'] ?? '',
-      name: json['Name'] ?? '',
-      address: json['Address'] ?? '',
-      contactNo: json['ContactNo'] ?? '',
+      id: JsonUtils.parseInt(json['Id']),
+      code: JsonUtils.parseString(json['Code']),
+      name: JsonUtils.parseString(json['Name']),
+      address: JsonUtils.parseString(json['Address']),
+      contactNo: JsonUtils.parseString(json['ContactNo']),
     );
   }
 

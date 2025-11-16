@@ -113,35 +113,6 @@ class SalesOrderNotifier extends AsyncNotifier<List<SalesOrder>> {
     refresh();
   }
 }
-// import 'dart:async';
-// import 'dart:convert';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:http/http.dart' as http;
-// import 'package:sms_app/models/sales_order_model.dart';
-// import '../config.dart';
-//
-// final String baseUrl =  '${Config().baseUrl}/salesorder';
-//
-// /// ✅ This provider manages fetching (GET) all SalesOrders
-// final salesOrderProvider =
-// AsyncNotifierProvider<SalesOrderNotifier, List<SalesOrder>>(SalesOrderNotifier.new);
-//
-// class SalesOrderNotifier extends AsyncNotifier<List<SalesOrder>> {
-//   @override
-//   FutureOr<List<SalesOrder>> build() async {
-//     return listData();
-//   }
-//
-//   Future<List<SalesOrder>> listData() async {
-//     final response = await http.get(Uri.parse(baseUrl));
-//     if (response.statusCode == 200) {
-//       final List<dynamic> data = jsonDecode(response.body);
-//       return data.map((item) => SalesOrder.fromJson(item)).toList();
-//     } else {
-//       throw Exception('Failed to load data');
-//     }
-//   }
-// }
 
 /// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
 final salesOrderActionProvider =
@@ -162,6 +133,9 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
       if (response.statusCode != 201 && response.statusCode != 200) {
         throw Exception('Failed to create data');
       }
+      else {
+        ref.invalidate(salesOrderProvider);
+      }
     });
   }
 
@@ -180,6 +154,9 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to update data');
+      }
+      else {
+        ref.invalidate(salesOrderProvider);
       }
     });
   }

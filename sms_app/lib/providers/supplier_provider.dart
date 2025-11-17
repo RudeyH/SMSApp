@@ -161,13 +161,37 @@ class SupplierActionNotifier extends AsyncNotifier<void> {
     });
   }
 
-  Future<void> deleteData(int id) async {
+  // Future<void> deleteData(int id) async {
+  //   state = const AsyncLoading();
+  //   state = await AsyncValue.guard(() async {
+  //     final response = await http.delete(Uri.parse('$baseUrl/$id'));
+  //     if (response.statusCode != 200 && response.statusCode != 204) {
+  //       throw Exception('Failed to delete data');
+  //     }
+  //   });
+  // }
+
+  Future<String?> deleteData(int id) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+
+    try {
       final response = await http.delete(Uri.parse('$baseUrl/$id'));
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete data');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        state = const AsyncData(null);
+        return null; // success
       }
-    });
+
+      if (response.statusCode == 409) {
+        final msg = jsonDecode(response.body)['message'] ?? 'Conflict error';
+        state = AsyncError(msg, StackTrace.current);
+        return msg; // return backend message
+      }
+
+      throw Exception('Failed to delete data');
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 }

@@ -162,19 +162,28 @@ class _SalesOrderDetailScreenState
                 label: const Text('Add Item'),
                 onPressed: _addItem,
               ),
-              )
+              ),
+              const SizedBox(height: 10),
+              Visibility(
+                visible: (isEditing && items.isNotEmpty),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.print),
+                  label: const Text('Print Invoice'),
+                  onPressed: _printInvoice,
+                ),
+              ),
             ],
           ),
         ),
       ),
-      floatingActionButton: isEditing && items.isNotEmpty
-          ? FloatingActionButton.extended(
-        onPressed: _printInvoice,
-        icon: const Icon(Icons.print),
-        label: const Text('Print Invoice'),
-        backgroundColor: Colors.blueAccent,
-      )
-          : null,
+      // floatingActionButton: isEditing && items.isNotEmpty
+      //     ? FloatingActionButton.extended(
+      //   onPressed: _printInvoice,
+      //   icon: const Icon(Icons.print),
+      //   label: const Text('Print Invoice'),
+      //   backgroundColor: Colors.blueAccent,
+      // )
+      //     : null,
     );
   }
 

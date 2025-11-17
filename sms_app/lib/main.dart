@@ -4,6 +4,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:sms_app/screens/login_screen.dart';
 import 'providers/theme_provider.dart';
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
@@ -61,6 +64,7 @@ class MyApp extends ConsumerWidget {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: themeMode, // <- global application of ThemeMode
+          scaffoldMessengerKey: rootScaffoldMessengerKey,
           home: const LoginScreen(),
         ),
       ),

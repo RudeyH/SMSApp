@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../helpers/notification_helper.dart';
+import '../main.dart';
 import '../models/product_model.dart';
 import '../providers/product_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -144,7 +146,21 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                         );
                       },
                       onDelete: () async {
-                        // handle delete here (if needed)
+                        // if (product.id != null) {
+                        //   await ref
+                        //       .read(productActionProvider.notifier)
+                        //       .deleteData(product.id!);
+                        //   notifier.refresh();
+                        // }
+                        if (product.id != null) {
+                          final result = await ref
+                              .read(productActionProvider.notifier)
+                              .deleteData(product.id!);
+                          if (result != null) {
+                            showError(result);
+                          }
+                          notifier.refresh();
+                        }
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +173,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                           const SizedBox(height: 4),
                           Text('Code: ${data.code}'),
                           Text('Price: Rp ${data.price.toStringAsFixed(2)}'),
-                          Text('Qty: ${data.quantity}'),
+                          Text('Qty: ${data.quantity} ${data.uom}'),
                         ],
                       ),
                     );

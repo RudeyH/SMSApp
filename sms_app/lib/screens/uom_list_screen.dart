@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../helpers/notification_helper.dart';
+import '../main.dart';
 import '../models/uom_model.dart';
 import '../providers/uom_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -142,9 +144,12 @@ class _UomListScreenState extends ConsumerState<UomListScreen> {
                       },
                       onDelete: () async {
                         if (uom.id != null) {
-                          await ref
+                          final result = await ref
                               .read(uomActionProvider.notifier)
                               .deleteData(uom.id!);
+                          if (result != null) {
+                            showError(result);
+                          }
                           notifier.refresh();
                         }
                       },

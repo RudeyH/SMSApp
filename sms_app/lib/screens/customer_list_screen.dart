@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../helpers/notification_helper.dart';
+import '../main.dart';
 import '../models/customer_model.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -150,9 +152,12 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                       },
                       onDelete: () async {
                         if (customer.id != null) {
-                          await ref
+                          final result = await ref
                               .read(customerActionProvider.notifier)
                               .deleteData(customer.id!);
+                          if (result != null) {
+                            showError(result);
+                          }
                           notifier.refresh();
                         }
                       },

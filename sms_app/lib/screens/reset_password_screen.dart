@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../helpers/notification_helper.dart';
+
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
 
@@ -28,10 +30,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(res.body),
-      backgroundColor: res.statusCode == 200 ? Colors.green : Colors.red,
-    ));
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    //   content: Text(res.body),
+    //   backgroundColor: res.statusCode == 200 ? Colors.green : Colors.red,
+    // ));
+    if (res.statusCode == 200) {
+      showSuccess(res.body);
+    }
+    else {
+      showError(res.body);
+    }
   }
 
   @override

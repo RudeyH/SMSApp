@@ -28,7 +28,7 @@ class AuthNotifier extends Notifier<AsyncValue<dynamic>> {
   Future<void> login(String username, String password) async {
     state = const AsyncValue.loading();
 
-    try {
+    // try {
       final res = await http.post(
         Uri.parse("$_baseUrl/login"),
         headers: {'Content-Type': 'application/json'},
@@ -38,17 +38,35 @@ class AuthNotifier extends Notifier<AsyncValue<dynamic>> {
         }),
       );
 
-      if (res.statusCode == 200) {
+      // if (res.statusCode == 200) {
+      //   final data = jsonDecode(res.body);
+      //   state = AsyncValue.data(data);
+      // } else {
+      //   state = AsyncValue.error(
+      //     jsonDecode(res.body)["message"] ?? "Login failed",
+      //     StackTrace.current,
+      //   );
+      // }
+    // } catch (e, st) {
+    //   state = AsyncValue.error(e, st);
+    // }
+    if (res.statusCode == 200) {
+      try {
         final data = jsonDecode(res.body);
         state = AsyncValue.data(data);
-      } else {
-        state = AsyncValue.error(
-          jsonDecode(res.body)["message"] ?? "Login failed",
-          StackTrace.current,
-        );
+      } catch (e) {
+        state =  AsyncValue.error("Invalid response format", StackTrace.current);
       }
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } else {
+      // Try parsing JSON, else fallback to raw text
+      String message;
+      try {
+        message = jsonDecode(res.body)["message"] ?? "Login failed";
+      } catch (e) {
+        message = res.body; // fallback if not JSON
+      }
+
+      state = AsyncValue.error(message, StackTrace.current);
     }
   }
 
@@ -61,14 +79,14 @@ class AuthNotifier extends Notifier<AsyncValue<dynamic>> {
       Uri.parse("$_baseUrl/register"),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "username": username,
-        "email": email,
-        "password": password, // backend handles hashing
+        "Username": username,
+        "Email": email,
+        "PasswordHash": password, // backend handles hashing
       }),
     );
-
     return res.statusCode == 200;
   }
+
 
   // ------------------------------------------------------------
   // REQUEST PASSWORD RESET

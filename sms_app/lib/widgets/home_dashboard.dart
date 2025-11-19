@@ -33,7 +33,8 @@ class HomeDashboard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: primary.withOpacity(0.1),
+                    // color: primary.withOpacity(0.1),
+                    color: primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Icon(
@@ -62,7 +63,8 @@ class HomeDashboard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 16,
-                    color: textColor!.withOpacity(0.8),
+                    // color: textColor!.withOpacity(0.8),
+                    color: textColor!.withValues(alpha: 0.8),
                     height: 1.4,
                   ),
                 ),
@@ -74,7 +76,8 @@ class HomeDashboard extends StatelessWidget {
                   height: 3,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primary, primary.withOpacity(0.4)],
+                      // colors: [primary, primary.withOpacity(0.4)],
+                      colors: [primary, primary.withValues(alpha: 0.4)],
                     ),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -87,7 +90,8 @@ class HomeDashboard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
-                    color: primary.withOpacity(0.05),
+                    // color: primary.withOpacity(0.05),
+                    color: primary.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: LineChart(
@@ -109,7 +113,8 @@ class HomeDashboard extends StatelessWidget {
                           ],
                           belowBarData: BarAreaData(
                             show: true,
-                            color: primary.withOpacity(0.2),
+                            // color: primary.withOpacity(0.2),
+                            color: primary.withValues(alpha: 0.2),
                           ),
                           dotData: FlDotData(show: false),
                         ),
@@ -124,7 +129,8 @@ class HomeDashboard extends StatelessWidget {
                   "Developed by: RAZ & Team",
                   style: GoogleFonts.poppins(
                     fontSize: 14,
-                    color: textColor.withOpacity(0.7),
+                    // color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                     fontStyle: FontStyle.italic,
                   ),
                 ),

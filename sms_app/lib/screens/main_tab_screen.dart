@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:sms_app/screens/product_report_screen.dart';
 import 'package:sms_app/screens/purchase_order_list_screen.dart';
-import 'package:sms_app/screens/reset_password_screen.dart';
 import 'package:sms_app/screens/settings_screen.dart';
 import 'package:sms_app/screens/supplier_list_screen.dart';
 import 'package:sms_app/screens/sales_order_list_screen.dart';
@@ -140,8 +139,7 @@ class _MainTabScreenState extends State<MainTabScreen>
         ]);
         break;
       case 4:
-        // _switchPage(const SettingsScreen(), "Settings");
-        _switchPage(const ResetPasswordScreen(), "Settings");
+         _switchPage(const SettingsScreen(), "Settings");
         break;
     }
   }

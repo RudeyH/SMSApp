@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../helpers/notification_helper.dart';
-import '../main.dart';
 import '../models/supplier_model.dart';
 import '../providers/supplier_provider.dart';
 import '../widgets/swipeable_list_tile.dart';

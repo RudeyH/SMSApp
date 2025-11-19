@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:sms_app/helpers/notification_helper.dart';
+
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -22,10 +24,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(res.body),
-      backgroundColor: res.statusCode == 200 ? Colors.green : Colors.red,
-    ));
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    //   content: Text(res.body),
+    //   backgroundColor: res.statusCode == 200 ? Colors.green : Colors.red,
+    // ));
+    if (res.statusCode == 200) {
+      showSuccess(res.body);
+    }
+    else {
+      showError(res.body);
+    }
   }
 
   @override

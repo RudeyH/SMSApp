@@ -1,3 +1,14 @@
+// final customerListProvider =
+// AsyncNotifierProvider<GenericListNotifier<Customer>, List<Customer>>(
+//       () => GenericListNotifier<Customer>(config: customerConfig),
+// );
+//
+// final customerActionProvider =
+// AsyncNotifierProvider<GenericActionNotifier<Customer>, void>(
+//       () => GenericActionNotifier<Customer>(config: customerConfig),
+// );
+
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +16,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/customer_model.dart';
+import 'auth_provider.dart';
 
 final String baseUrl = '${Config().baseUrl}/customer';
 
@@ -48,8 +60,12 @@ class CustomerNotifier extends AsyncNotifier<List<Customer>> {
     final uri = Uri.parse(
       '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery',
     );
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.get(uri, headers: headers); // <-- FIXED url→uri
+    });
 
-    final response = await http.get(uri);
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       if (data.length < _pageSize) _hasMore = false;

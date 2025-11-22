@@ -25,13 +25,13 @@ class SalesOrder {
     json = json ?? {};
 
     return SalesOrder(
-      id: JsonUtils.parseInt(json['Id']),
-      transNumber: JsonUtils.parseString(json['TransNumber']),
-      transDate: _parseDate(json['TransDate']),
-      customerId: JsonUtils.parseInt(json['CustomerId']) ?? 0,
-      customer: Customer.fromJson(JsonUtils.ensureMap(json['Customer'])),
-      grandTotal: JsonUtils.parseDouble(json['GrandTotal']),
-      items: _parseItems(json['Items']),
+      id: JsonUtils.parseInt(json['id']),
+      transNumber: JsonUtils.parseString(json['transNumber']),
+      transDate: _parseDate(json['transDate']),
+      customerId: JsonUtils.parseInt(json['customerId']) ?? 0,
+      customer: Customer.fromJson(JsonUtils.ensureMap(json['customer'])),
+      grandTotal: JsonUtils.parseDouble(json['grandTotal']),
+      items: _parseItems(json['items']),
     );
   }
 
@@ -51,30 +51,30 @@ class SalesOrder {
   }
 
   Map<String, dynamic> toJson() => {
-    'Id': id,
-    'TransNumber': transNumber,
-    'TransDate': transDate.toIso8601String(),
-    'CustomerId': customerId,
-    'Customer': customer.toJson(),
-    'GrandTotal': grandTotal,
-    'Items': items.map((i) => i.toJson()).toList(),
+    'id': id,
+    'transNumber': transNumber,
+    'transDate': transDate.toIso8601String(),
+    'customerId': customerId,
+    'customer': customer.toJson(),
+    'grandTotal': grandTotal,
+    'items': items.map((i) => i.toJson()).toList(),
   };
 
   Map<String, dynamic> toCreateJson() => {
-    'TransNumber': transNumber,
-    'TransDate': transDate.toIso8601String(),
-    'CustomerId': customerId,
-    'GrandTotal': grandTotal,
-    'Items': items.map((i) => i.toCreateJson()).toList(),
+    'transNumber': transNumber,
+    'transDate': transDate.toIso8601String(),
+    'customerId': customerId,
+    'grandTotal': grandTotal,
+    'items': items.map((i) => i.toCreateJson()).toList(),
   };
 
   Map<String, dynamic> toUpdateJson() => {
-    'Id': id,
-    'TransNumber': transNumber,
-    'TransDate': transDate.toIso8601String(),
-    'CustomerId': customerId,
-    'GrandTotal': grandTotal,
-    'Items': items.map((i) => i.toCreateJson()).toList(),
+    'id': id,
+    'transNumber': transNumber,
+    'transDate': transDate.toIso8601String(),
+    'customerId': customerId,
+    'grandTotal': grandTotal,
+    'items': items.map((i) => i.toCreateJson()).toList(),
   };
 }
 

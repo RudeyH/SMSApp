@@ -24,25 +24,25 @@ class Product {
   factory Product.fromJson(Map<String, dynamic>? json) {
     json = json ?? {};
     return Product(
-      id: JsonUtils.parseInt(json['Id']),
-      code: JsonUtils.parseString(json['Code']),
-      name: JsonUtils.parseString(json['Name']),
-      price: JsonUtils.parseDouble(json['Price']),
-      quantity: JsonUtils.parseDouble(json['Quantity']),
-      uomId: JsonUtils.parseInt(json['UOMId']) ?? 0,
-      uom: UOM.fromJson(JsonUtils.ensureMap(json['UOM'])),
+      id: JsonUtils.parseInt(json['id']),
+      code: JsonUtils.parseString(json['code']),
+      name: JsonUtils.parseString(json['name']),
+      price: JsonUtils.parseDouble(json['price']),
+      quantity: JsonUtils.parseDouble(json['quantity']),
+      uomId: JsonUtils.parseInt(json['uomId']) ?? 0,
+      uom: UOM.fromJson(JsonUtils.ensureMap(json['uom'])),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'Id': id,
-      'Code': code,
-      'Name': name,
-      'Price': price,
-      'Quantity': quantity,
-      'UOMId': uomId,
-      'UOM': uom.toJson(),
+      'id': id,
+      'code': code,
+      'name': name,
+      'price': price,
+      'quantity': quantity,
+      'uomId': uomId,
+      'uom': uom.toJson(),
     };
   }
 
@@ -56,11 +56,11 @@ class Product {
   };
 
   Map<String, dynamic> toUpdateJson() => {
-    'Id': id,
-    'Code': code,
-    'Name': name,
-    'Price': price,
-    'Quantity': quantity,
-    'UOMId': uomId,
+    'id': id,
+    'code': code,
+    'name': name,
+    'price': price,
+    'quantity': quantity,
+    'uomId': uomId,
   };
 }

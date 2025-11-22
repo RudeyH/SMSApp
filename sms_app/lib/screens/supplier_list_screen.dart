@@ -44,6 +44,19 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(supplierProvider);
     final notifier = ref.read(supplierProvider.notifier);
+    ref.listen<AsyncValue<void>>(supplierActionProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          // Only show success if previous state was loading (i.e. after an action)
+          if (previous?.isLoading == true) {
+            showSuccess("Data deleted successfully");
+          }
+        },
+        error: (err, _) {
+          showError(err.toString());
+        },
+      );
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -149,12 +162,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
                       },
                       onDelete: () async {
                         if (supplier.id != null) {
-                          final result = await ref
-                              .read(supplierActionProvider.notifier)
-                              .deleteData(supplier.id!);
-                          if (result != null) {
-                            showError(result);
-                          }
+                          await ref.read(supplierActionProvider.notifier).deleteData(supplier.id!);
                           notifier.refresh();
                         }
                       },

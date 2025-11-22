@@ -23,29 +23,29 @@ class SalesOrderItem {
   factory SalesOrderItem.fromJson(Map<String, dynamic>? json) {
     json = json ?? {};
     return SalesOrderItem(
-      id: JsonUtils.parseInt(json['Id']),
-      salesOrderId: JsonUtils.parseInt(json['SalesOrderId']),
-      salesOrder: JsonUtils.parseString(json['SalesOrder']),
-      productId: JsonUtils.parseInt(json['ProductId']) ?? 0,
-      product: Product.fromJson(JsonUtils.ensureMap(json['Product'])),
-      quantity: JsonUtils.parseDouble(json['Quantity']),
-      unitPrice: JsonUtils.parseDouble(json['UnitPrice']),
+      id: JsonUtils.parseInt(json['id']),
+      salesOrderId: JsonUtils.parseInt(json['salesOrderId']),
+      salesOrder: JsonUtils.parseString(json['salesOrder']),
+      productId: JsonUtils.parseInt(json['productId']) ?? 0,
+      product: Product.fromJson(JsonUtils.ensureMap(json['product'])),
+      quantity: JsonUtils.parseDouble(json['quantity']),
+      unitPrice: JsonUtils.parseDouble(json['unitPrice']),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'Id': id,
-    'SalesOrderId': salesOrderId,
-    'SalesOrder': salesOrder,
-    'ProductId': productId,
-    'Product': product.toJson(),
-    'Quantity': quantity,
-    'UnitPrice': unitPrice,
+    'id': id,
+    'salesOrderId': salesOrderId,
+    'salesOrder': salesOrder,
+    'productId': productId,
+    'product': product.toJson(),
+    'quantity': quantity,
+    'unitPrice': unitPrice,
   };
 
   Map<String, dynamic> toCreateJson() => {
-    'ProductId': productId,
-    'Quantity': quantity,
-    'UnitPrice': unitPrice,
+    'productId': productId,
+    'quantity': quantity,
+    'unitPrice': unitPrice,
   };
 }

@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../models/api_response_model.dart';
 import '../models/sales_order_item_model.dart';
 import '../models/sales_order_model.dart';
 import '../utils/json_utils.dart';
+import 'auth_provider.dart';
 
 final String baseUrl = '${Config().baseUrl}/salesorder';
 
@@ -51,24 +53,33 @@ class SalesOrderNotifier extends AsyncNotifier<List<SalesOrder>> {
       '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery',
     );
 
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      if (data.length < _pageSize) _hasMore = false;
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.get(uri, headers: headers);
+    });
 
-      List<SalesOrder> salesOrders =
-      data.map((e) => SalesOrder.fromJson(e)).toList();
-
-      _applySort(salesOrders);
-
-      if (!reset) {
-        final current = state.value ?? [];
-        return [...current, ...salesOrders];
-      }
-      return salesOrders;
-    } else {
-      throw Exception('Failed to load data');
+    final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to load data');
     }
+    if (api.data is! List) {
+      throw Exception("API returned non-list data");
+    }
+
+    final List<dynamic> data = api.data as List<dynamic>;
+    if (data.length < _pageSize) _hasMore = false;
+    List<SalesOrder> salesOrders =
+    data.map((e) => SalesOrder.fromJson(e)).toList();
+    _currentPage++;
+    if (!reset) {
+      final current = state.value ?? [];
+      final merged = [...current, ...salesOrders];
+      _applySort(merged);
+      return merged;
+    }
+    _applySort(salesOrders);
+    return salesOrders;
   }
 
   void _applySort(List<SalesOrder> list) {
@@ -126,17 +137,20 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
   Future<void> createData(SalesOrder data) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toCreateJson()),
-      );
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception('Failed to create data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.post(
+          Uri.parse(baseUrl),
+          headers: {...headers,'Content-Type': 'application/json'},
+          body: jsonEncode(data.toCreateJson()),
+        );
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to create data');
       }
-      else {
-        ref.invalidate(salesOrderProvider);
-      }
+      ref.invalidate(salesOrderProvider);
     });
   }
 
@@ -144,47 +158,57 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
     if (data.id == null) {
       throw Exception('Cannot update data without ID');
     }
-
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.put(
-        Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toUpdateJson()),
-      );
-
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to update data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.put(
+          Uri.parse(baseUrl),
+          headers: {...headers,'Content-Type': 'application/json'},
+          body: jsonEncode(data.toUpdateJson()),
+        );
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to update data');
       }
-      else {
-        ref.invalidate(salesOrderProvider);
-      }
+      ref.invalidate(salesOrderProvider);
     });
   }
 
   Future<void> deleteData(int id) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.delete(Uri.parse('$baseUrl/$id'));
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.delete(Uri.parse('$baseUrl/$id'), headers: headers);
+      });
+
+      final api = ApiResponse.fromJson(jsonDecode(response.body));
+
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to delete data');
       }
     });
   }
 
   Future<SalesOrder> createOrderWithoutItems(SalesOrder data) async {
-    final resp = await http.post(
-      Uri.parse(baseUrl),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(data.toCreateJson()),
-    );
-
-    if (resp.statusCode == 200 || resp.statusCode == 201) {
-      final Map<String, dynamic> body = jsonDecode(resp.body);
-      return SalesOrder.fromJson(JsonUtils.ensureMap(body));
-    } else {
-      throw Exception('Failed to create order: ${resp.statusCode} ${resp.body}');
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.post(
+        Uri.parse(baseUrl),
+        headers: {...headers, 'Content-Type': 'application/json'},
+        body: jsonEncode(data.toCreateJson()),
+      );
+    });
+    final api = ApiResponse.fromJson(jsonDecode(response.body));
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to create order');
     }
+    return SalesOrder.fromJson(JsonUtils.ensureMap(api.data));
   }
 
   Future<SalesOrderItem> addItemToOrder(int orderId, SalesOrderItem item) async {
@@ -193,35 +217,48 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
       "quantity": item.quantity,
       "unitPrice": item.unitPrice,
     };
-    final resp = await http.post(
-      Uri.parse('$baseUrl/$orderId/items'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(dto),
-    );
-
-    if (resp.statusCode == 200 || resp.statusCode == 201) {
-      final body = jsonDecode(resp.body);
-      return SalesOrderItem.fromJson(JsonUtils.ensureMap(body));
-    } else {
-      throw Exception('Failed to add item: ${resp.statusCode} ${resp.body}');
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.post(
+        Uri.parse('$baseUrl/$orderId/items'),
+        headers: {...headers, 'Content-Type': 'application/json'},
+        body: jsonEncode(dto),
+      );
+    });
+    final api = ApiResponse.fromJson(jsonDecode(response.body));
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to add item');
     }
+    return SalesOrderItem.fromJson(JsonUtils.ensureMap(api.data));
   }
 
   Future<void> deleteOrderItem(int itemId) async {
-    final resp = await http.delete(Uri.parse('$baseUrl/items/$itemId'));
-    if (resp.statusCode != 200 && resp.statusCode != 204) {
-      throw Exception('Failed to delete item: ${resp.statusCode} ${resp.body}');
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.delete(Uri.parse('$baseUrl/items/$itemId'), headers: headers);
+    });
+    final api = ApiResponse.fromJson(jsonDecode(response.body));
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to delete item');
     }
   }
 
   Future<void> updateOrderCustomer(int orderId, int customerId) async {
-    final resp = await http.put(
-      Uri.parse('$baseUrl/$orderId/customer'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({"customerId": customerId}),
-    );
-    if (resp.statusCode != 200 && resp.statusCode != 204) {
-      throw Exception('Failed to update customer: ${resp.statusCode} ${resp.body}');
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.put(
+        Uri.parse('$baseUrl/$orderId/customer'),
+        headers: {...headers, 'Content-Type': 'application/json'},
+        body: jsonEncode({"customerId": customerId}),
+      );
+    });
+    final api = ApiResponse.fromJson(jsonDecode(response.body));
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to update customer');
     }
   }
+
 }

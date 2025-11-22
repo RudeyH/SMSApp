@@ -1,22 +1,3 @@
-// import '../generics/customer_config.dart';
-// import '../generics/generic_list_screen.dart';
-// import '../models/customer_model.dart';
-// import '../providers/customer_provider.dart';
-//
-// class CustomerListScreen extends StatelessWidget {
-//   const CustomerListScreen({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return GenericListScreen<Customer>(
-//       provider: customerListProvider,
-//       actionProvider: customerActionProvider,
-//       config: customerConfig,
-//     );
-//   }
-// }
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../helpers/notification_helper.dart';
@@ -63,6 +44,19 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(customerProvider);
     final notifier = ref.read(customerProvider.notifier);
+    ref.listen<AsyncValue<void>>(customerActionProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          // Only show success if previous state was loading (i.e. after an action)
+          if (previous?.isLoading == true) {
+            showSuccess("Data deleted successfully");
+          }
+        },
+        error: (err, _) {
+          showError(err.toString());
+        },
+      );
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -170,12 +164,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                       },
                       onDelete: () async {
                         if (customer.id != null) {
-                          final result = await ref
-                              .read(customerActionProvider.notifier)
-                              .deleteData(customer.id!);
-                          if (result != null) {
-                            showError(result);
-                          }
+                          await ref.read(customerActionProvider.notifier).deleteData(customer.id!);
                           notifier.refresh();
                         }
                       },

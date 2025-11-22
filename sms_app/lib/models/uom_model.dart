@@ -15,17 +15,17 @@ class UOM {
     json = json ?? {};
 
     return UOM(
-      id: JsonUtils.parseInt(json['Id']),
-      code: JsonUtils.parseString(json['Code']),
-      name: JsonUtils.parseString(json['Name']),
+      id: JsonUtils.parseInt(json['id']),
+      code: JsonUtils.parseString(json['code']),
+      name: JsonUtils.parseString(json['name']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'Id': id,
-      'Code': code,
-      'Name': name,
+      'id': id,
+      'code': code,
+      'name': name,
     };
   }
 }

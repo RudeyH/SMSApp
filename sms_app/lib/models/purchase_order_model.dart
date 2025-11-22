@@ -51,30 +51,30 @@ class PurchaseOrder {
   }
 
   Map<String, dynamic> toJson() => {
-    'Id': id,
-    'TransNumber': transNumber,
-    'TransDate': transDate.toIso8601String(),
-    'SupplierId': supplierId,
-    'Supplier': supplier.toJson(),
-    'GrandTotal': grandTotal,
-    'Items': items.map((i) => i.toJson()).toList(),
+    'id': id,
+    'transNumber': transNumber,
+    'transDate': transDate.toIso8601String(),
+    'supplierId': supplierId,
+    'supplier': supplier.toJson(),
+    'grandTotal': grandTotal,
+    'items': items.map((i) => i.toJson()).toList(),
   };
 
   Map<String, dynamic> toCreateJson() => {
-    'TransNumber': transNumber,
-    'TransDate': transDate.toIso8601String(),
-    'SupplierId': supplierId,
-    'GrandTotal': grandTotal,
-    'Items': items.map((i) => i.toCreateJson()).toList(),
+    'transNumber': transNumber,
+    'transDate': transDate.toIso8601String(),
+    'supplierId': supplierId,
+    'grandTotal': grandTotal,
+    'items': items.map((i) => i.toCreateJson()).toList(),
   };
 
   Map<String, dynamic> toUpdateJson() => {
-    'Id': id,
-    'TransNumber': transNumber,
-    'TransDate': transDate.toIso8601String(),
-    'SupplierId': supplierId,
-    'GrandTotal': grandTotal,
-    'Items': items.map((i) => i.toCreateJson()).toList(),
+    'id': id,
+    'transNumber': transNumber,
+    'transDate': transDate.toIso8601String(),
+    'supplierId': supplierId,
+    'grandTotal': grandTotal,
+    'items': items.map((i) => i.toCreateJson()).toList(),
   };
 
 }

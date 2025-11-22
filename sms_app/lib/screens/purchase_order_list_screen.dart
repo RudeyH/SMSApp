@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../helpers/notification_helper.dart';
 import '../models/purchase_order_model.dart';
 import '../providers/product_provider.dart';
 import '../providers/purchase_order_provider.dart';
@@ -45,7 +46,19 @@ class _PurchaseOrderListScreenState
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(purchaseOrderProvider);
     final notifier = ref.read(purchaseOrderProvider.notifier);
-
+    ref.listen<AsyncValue<void>>(purchaseOrderActionProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          // Only show success if previous state was loading (i.e. after an action)
+          if (previous?.isLoading == true) {
+            showSuccess("Data deleted successfully");
+          }
+        },
+        error: (err, _) {
+          showError(err.toString());
+        },
+      );
+    });
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -146,10 +159,8 @@ class _PurchaseOrderListScreenState
                       },
                       onDelete: () async {
                         if (order.id != null) {
-                          await ref
-                              .read(purchaseOrderActionProvider.notifier)
-                              .deleteData(order.id!);
-                          ref.invalidate(productProvider);
+                          await ref.read(purchaseOrderActionProvider.notifier).deleteData(order.id!);
+                          notifier.refresh();
                         }
                       },
                       contentBuilder: (_, data) => Column(

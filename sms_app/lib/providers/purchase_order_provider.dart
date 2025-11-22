@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../models/api_response_model.dart';
 import '../models/purchase_order_model.dart';
+import 'auth_provider.dart';
 
-final String baseUrl = '${Config().baseUrl}/purchaseorder';
+final String baseUrl = '${Config().baseUrl}/PurchaseOrder';
 
 final purchaseOrderProvider =
 AsyncNotifierProvider<PurchaseOrderNotifier, List<PurchaseOrder>>(PurchaseOrderNotifier.new);
@@ -49,24 +51,33 @@ class PurchaseOrderNotifier extends AsyncNotifier<List<PurchaseOrder>> {
       '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery',
     );
 
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      if (data.length < _pageSize) _hasMore = false;
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.get(uri, headers: headers);
+    });
 
-      List<PurchaseOrder> purchaseOrders =
-      data.map((e) => PurchaseOrder.fromJson(e)).toList();
-
-      _applySort(purchaseOrders);
-
-      if (!reset) {
-        final current = state.value ?? [];
-        return [...current, ...purchaseOrders];
-      }
-      return purchaseOrders;
-    } else {
-      throw Exception('Failed to load data');
+    final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to load data');
     }
+    if (api.data is! List) {
+      throw Exception("API returned non-list data");
+    }
+
+    final List<dynamic> data = api.data as List<dynamic>;
+    if (data.length < _pageSize) _hasMore = false;
+    List<PurchaseOrder> purchaseOrders =
+    data.map((e) => PurchaseOrder.fromJson(e)).toList();
+    _currentPage++;
+    if (!reset) {
+      final current = state.value ?? [];
+      final merged = [...current, ...purchaseOrders];
+      _applySort(merged);
+      return merged;
+    }
+    _applySort(purchaseOrders);
+    return purchaseOrders;
   }
 
   void _applySort(List<PurchaseOrder> list) {
@@ -125,17 +136,20 @@ class PurchaseOrderActionNotifier extends AsyncNotifier<void> {
   Future<void> createData(PurchaseOrder data) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toCreateJson()),
-      );
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception('Failed to create data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.post(
+          Uri.parse(baseUrl),
+          headers: {...headers,'Content-Type': 'application/json'},
+          body: jsonEncode(data.toCreateJson()),
+        );
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to create data');
       }
-      else {
-        ref.invalidate(purchaseOrderProvider);
-      }
+      ref.invalidate(purchaseOrderProvider);
     });
   }
 
@@ -146,26 +160,36 @@ class PurchaseOrderActionNotifier extends AsyncNotifier<void> {
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.put(
-        Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toUpdateJson()),
-      );
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to update data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.put(
+          Uri.parse(baseUrl),
+          headers: {...headers,'Content-Type': 'application/json'},
+          body: jsonEncode(data.toUpdateJson()),
+        );
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to update data');
       }
-      else {
-        ref.invalidate(purchaseOrderProvider);
-      }
+      ref.invalidate(purchaseOrderProvider);
     });
   }
 
   Future<void> deleteData(int id) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.delete(Uri.parse('$baseUrl/$id'));
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.delete(Uri.parse('$baseUrl/$id'), headers: headers);
+      });
+
+      final api = ApiResponse.fromJson(jsonDecode(response.body));
+
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to delete data');
       }
     });
   }

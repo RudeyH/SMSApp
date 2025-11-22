@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../helpers/notification_helper.dart';
 import '../models/supplier_model.dart';
 import '../providers/supplier_provider.dart';
 
@@ -39,30 +40,20 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
       next.whenOrNull(
         data: (_) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isEditing
-                    ? 'Data updated successfully!'
-                    : 'Data created successfully!',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          showSuccess(
+            isEditing
+                ? "Data updated successfully"
+                : "Data created successfully",
           );
+
           Navigator.pop(context);
         },
-        error: (error, _) {
+        error: (err, _) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $error'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showError(err.toString());
         },
       );
     });
-
     final actionState = ref.watch(supplierActionProvider);
 
     return Scaffold(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../helpers/notification_helper.dart';
 import '../models/supplier_model.dart';
 import '../models/purchase_order_item_model.dart';
 import '../models/purchase_order_model.dart';
@@ -43,34 +44,25 @@ class _PurchaseOrderDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Safe placement for ref.listen
     ref.listen<AsyncValue<void>>(purchaseOrderActionProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isEditing
-                    ? 'Data updated successfully!'
-                    : 'Data created successfully!',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          showSuccess(
+            isEditing
+                ? "Data updated successfully"
+                : "Data created successfully",
           );
+
           Navigator.pop(context);
         },
-        error: (error, _) {
+        error: (err, _) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $error'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showError(err.toString());
         },
       );
     });
-
     final actionState = ref.watch(purchaseOrderActionProvider);
 
     return Scaffold(

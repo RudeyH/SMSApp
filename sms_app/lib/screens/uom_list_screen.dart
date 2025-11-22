@@ -44,7 +44,19 @@ class _UomListScreenState extends ConsumerState<UomListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(uomProvider);
     final notifier = ref.read(uomProvider.notifier);
-
+    ref.listen<AsyncValue<void>>(uomActionProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          // Only show success if previous state was loading (i.e. after an action)
+          if (previous?.isLoading == true) {
+            showSuccess("Data deleted successfully");
+          }
+        },
+        error: (err, _) {
+          showError(err.toString());
+        },
+      );
+    });
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -143,12 +155,7 @@ class _UomListScreenState extends ConsumerState<UomListScreen> {
                       },
                       onDelete: () async {
                         if (uom.id != null) {
-                          final result = await ref
-                              .read(uomActionProvider.notifier)
-                              .deleteData(uom.id!);
-                          if (result != null) {
-                            showError(result);
-                          }
+                          await ref.read(uomActionProvider.notifier).deleteData(uom.id!);
                           notifier.refresh();
                         }
                       },

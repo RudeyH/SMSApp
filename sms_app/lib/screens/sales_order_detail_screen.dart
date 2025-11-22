@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
+import '../helpers/notification_helper.dart';
 import '../models/customer_model.dart';
 import '../models/sales_order_item_model.dart';
 import '../models/sales_order_model.dart';
@@ -58,30 +59,15 @@ class _SalesOrderDetailScreenState
     ref.listen<AsyncValue<void>>(salesOrderActionProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isEditing
-                    ? 'Data updated successfully!'
-                    : 'Data created successfully!',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSuccess(isEditing ? "Data updated!" : "Data created!");
           Navigator.pop(context);
         },
-        error: (error, _) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $error'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        error: (err, _) {
+          showError(err.toString());
         },
       );
     });
+
 
     // final actionState = ref.watch(salesOrderActionProvider);
 

@@ -43,7 +43,19 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(productProvider);
     final notifier = ref.read(productProvider.notifier);
-
+    ref.listen<AsyncValue<void>>(productActionProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          // Only show success if previous state was loading (i.e. after an action)
+          if (previous?.isLoading == true) {
+            showSuccess("Data deleted successfully");
+          }
+        },
+        error: (err, _) {
+          showError(err.toString());
+        },
+      );
+    });
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -145,19 +157,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                         );
                       },
                       onDelete: () async {
-                        // if (product.id != null) {
-                        //   await ref
-                        //       .read(productActionProvider.notifier)
-                        //       .deleteData(product.id!);
-                        //   notifier.refresh();
-                        // }
                         if (product.id != null) {
-                          final result = await ref
-                              .read(productActionProvider.notifier)
-                              .deleteData(product.id!);
-                          if (result != null) {
-                            showError(result);
-                          }
+                          await ref.read(productActionProvider.notifier).deleteData(product.id!);
                           notifier.refresh();
                         }
                       },
@@ -172,7 +173,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                           const SizedBox(height: 4),
                           Text('Code: ${data.code}'),
                           Text('Price: Rp ${data.price.toStringAsFixed(2)}'),
-                          Text('Qty: ${data.quantity} ${data.uom}'),
+                          Text('Qty: ${data.quantity} ${data.uom.name}'),
                         ],
                       ),
                     );

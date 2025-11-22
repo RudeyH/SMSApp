@@ -1,32 +1,18 @@
-// import 'dart:async';
-// import 'dart:convert';
-// import 'package:http/http.dart' as http;
-// import 'generic_list_config.dart';
-//
-// class GenericActionNotifier<T> extends AsyncNotifier<void> {
-//   final GenericListConfig<T> config;
-//
-//   GenericActionNotifier({required this.config});
-//
-//   @override
-//   FutureOr<void> build() {}
-//
-//   Future<String?> deleteData(int id) async {
-//     state = const AsyncLoading();
-//
-//     final res = await http.delete(Uri.parse('${config.baseUrl}/$id'));
-//
-//     if (res.statusCode == 200 || res.statusCode == 204) {
-//       state = const AsyncData(null);
-//       return null;
-//     }
-//
-//     if (res.statusCode == 409) {
-//       final msg = jsonDecode(res.body)["message"];
-//       state = AsyncError(msg, StackTrace.current);
-//       return msg;
-//     }
-//
-//     throw Exception("Delete failed");
-//   }
-// }
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'generic_list_config.dart';
+
+class GenericActionNotifier extends StateNotifier<AsyncValue<void>> {
+  GenericActionNotifier(this.config) : super(const AsyncValue.data(null));
+
+  final GenericListConfig config;
+
+  Future<void> execute() async {
+    state = const AsyncValue.loading();
+    try {
+      await config.actionFunction();
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}

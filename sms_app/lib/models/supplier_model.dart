@@ -18,21 +18,21 @@ class Supplier {
   factory Supplier.fromJson(Map<String, dynamic>? json) {
     json = json ?? {};
     return Supplier(
-      id: JsonUtils.parseInt(json['Id']),
-      code: JsonUtils.parseString(json['Code']),
-      name: JsonUtils.parseString(json['Name']),
-      address: JsonUtils.parseString(json['Address']),
-      contactNo: JsonUtils.parseString(json['ContactNo']),
+      id: JsonUtils.parseInt(json['id']),
+      code: JsonUtils.parseString(json['code']),
+      name: JsonUtils.parseString(json['name']),
+      address: JsonUtils.parseString(json['address']),
+      contactNo: JsonUtils.parseString(json['contactNo']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'Id': id,
-      'Code': code,
-      'Name': name,
-      'Address': address,
-      'ContactNo': contactNo,
+      'id': id,
+      'code': code,
+      'name': name,
+      'address': address,
+      'contactNo': contactNo,
     };
   }
 }

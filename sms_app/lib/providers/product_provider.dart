@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../models/api_response_model.dart';
 import '../models/product_model.dart';
+import 'auth_provider.dart';
 
 final String baseUrl = '${Config().baseUrl}/product';
 
@@ -39,6 +41,38 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
     await prefs.setBool('productSortAsc', _sortAsc);
   }
 
+  // Future<List<Product>> _fetchPage({bool reset = false}) async {
+  //   if (reset) {
+  //     _currentPage = 1;
+  //     _hasMore = true;
+  //   }
+  //
+  //   final uri = Uri.parse(
+  //     '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery',
+  //   );
+  //
+  //   final response = await ref
+  //       .read(authProvider.notifier)
+  //       .authenticatedRequest(ref, (headers) {
+  //     return http.get(uri, headers: headers);
+  //   });
+  //
+  //   final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+  //   if (!api.success) {
+  //     throw Exception(api.message ?? 'Failed to load data');
+  //   }
+  //   final List<dynamic> data = api.data as List<dynamic>;
+  //
+  //   if (data.length < _pageSize) _hasMore = false;
+  //   List<Product> products =
+  //   data.map((e) => Product.fromJson(e)).toList();
+  //   _applySort(products);
+  //   if (!reset) {
+  //     final current = state.value ?? [];
+  //     return [...current, ...products];
+  //   }
+  //   return products;
+  // }
   Future<List<Product>> _fetchPage({bool reset = false}) async {
     if (reset) {
       _currentPage = 1;
@@ -46,28 +80,38 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
     }
 
     final uri = Uri.parse(
-      '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery',
-    );
+        '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery');
 
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      if (data.length < _pageSize) _hasMore = false;
+    final response = await ref
+        .read(authProvider.notifier)
+        .authenticatedRequest(ref, (headers) {
+      return http.get(uri, headers: headers);
+    });
 
-      List<Product> products =
-      data.map((e) => Product.fromJson(e)).toList();
+    final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
 
-      _applySort(products);
-
-      if (!reset) {
-        final current = state.value ?? [];
-        return [...current, ...products];
-      }
-      return products;
-    } else {
-      throw Exception('Failed to load data');
+    if (!api.success) {
+      throw Exception(api.message ?? 'Failed to load data');
     }
+    if (api.data is! List) {
+      throw Exception("API returned non-list data");
+    }
+
+    final List<dynamic> data = api.data as List<dynamic>;
+    if (data.length < _pageSize) _hasMore = false;
+    List<Product> products =
+    data.map((e) => Product.fromJson(e)).toList();
+    _currentPage++;
+    if (!reset) {
+      final current = state.value ?? [];
+      final merged = [...current, ...products];
+      _applySort(merged);
+      return merged;
+    }
+    _applySort(products);
+    return products;
   }
+
 
   void _applySort(List<Product> list) {
     list.sort((a, b) {
@@ -128,17 +172,20 @@ class ProductActionNotifier extends AsyncNotifier<void> {
   Future<void> createData(Product data) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toCreateJson()),
-      );
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception('Failed to create data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.post(
+          Uri.parse(baseUrl),
+          headers: {...headers,'Content-Type': 'application/json'},
+          body: jsonEncode(data.toCreateJson()),
+        );
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to create data');
       }
-      else {
-        ref.invalidate(productProvider);
-      }
+      ref.invalidate(productProvider);
     });
   }
 
@@ -149,49 +196,37 @@ class ProductActionNotifier extends AsyncNotifier<void> {
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final response = await http.put(
-        Uri.parse(baseUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data.toUpdateJson()),
-      );
-
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to update data');
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.put(
+          Uri.parse(baseUrl),
+          headers: {...headers,'Content-Type': 'application/json'},
+          body: jsonEncode(data.toUpdateJson()),
+        );
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        throw Exception(api.message ?? 'Failed to update data');
       }
-      else {
-        ref.invalidate(productProvider);
-      }
+      ref.invalidate(productProvider);
     });
   }
 
-  // Future<void> deleteData(int id) async {
-  //   state = const AsyncLoading();
-  //   state = await AsyncValue.guard(() async {
-  //     final response = await http.delete(Uri.parse('$baseUrl/$id'));
-  //     if (response.statusCode != 200 && response.statusCode != 204) {
-  //       throw Exception('Failed to delete data');
-  //     }
-  //   });
-  // }
-
   Future<String?> deleteData(int id) async {
     state = const AsyncLoading();
-
     try {
-      final response = await http.delete(Uri.parse('$baseUrl/$id'));
-
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        state = const AsyncData(null);
-        return null; // success
+      final response = await ref
+          .read(authProvider.notifier)
+          .authenticatedRequest(ref, (headers) {
+        return http.delete(Uri.parse('$baseUrl/$id'),headers: headers);
+      });
+      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+      if (!api.success) {
+        return api.message ?? 'Failed to delete data';
       }
-
-      if (response.statusCode == 409) {
-        final msg = jsonDecode(response.body)['message'] ?? 'Conflict error';
-        state = AsyncError(msg, StackTrace.current);
-        return msg; // return backend message
-      }
-
-      throw Exception('Failed to delete data');
+      state = const AsyncData(null);
+      return null; // success
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../helpers/notification_helper.dart';
 import '../models/product_model.dart';
 import '../providers/product_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -43,19 +42,6 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(productProvider);
     final notifier = ref.read(productProvider.notifier);
-    ref.listen<AsyncValue<void>>(productActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          // Only show success if previous state was loading (i.e. after an action)
-          if (previous?.isLoading == true) {
-            showSuccess("Data deleted successfully");
-          }
-        },
-        error: (err, _) {
-          showError(err.toString());
-        },
-      );
-    });
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -147,7 +133,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                     return SwipeableListTile<Product>(
                       item: product,
                       deleteConfirmMessage:
-                      'Delete product "${product.name}"?',
+                      'Are you sure you want to delete product "${product.name}"?',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -158,9 +144,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                       },
                       onDelete: () async {
                         if (product.id != null) {
-                          await ref.read(productActionProvider.notifier).deleteData(product.id!);
-                          notifier.refresh();
+                          return await ref.read(productActionProvider.notifier).deleteData(product.id!);
                         }
+                        return null;
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

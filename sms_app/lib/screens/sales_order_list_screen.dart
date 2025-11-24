@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../helpers/notification_helper.dart';
 import '../models/sales_order_model.dart';
 import '../providers/product_provider.dart';
 import '../providers/sales_order_provider.dart';
@@ -48,13 +47,6 @@ class _SalesOrderListScreenState extends ConsumerState<SalesOrderListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(salesOrderProvider);
     final notifier = ref.read(salesOrderProvider.notifier);
-    ref.listen<AsyncValue<void>>(salesOrderActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) => showSuccess("Success!"),
-        error: (err, _) => showError(err.toString()),
-      );
-    });
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sales Orders'),
@@ -150,10 +142,11 @@ class _SalesOrderListScreenState extends ConsumerState<SalesOrderListScreen> {
                       },
                       onDelete: () async {
                         if (order.id != null) {
-                          await ref.read(salesOrderActionProvider.notifier).deleteData(order.id!);
-                          notifier.refresh();
+                          final result = await ref.read(salesOrderActionProvider.notifier).deleteData(order.id!);
                           ref.invalidate(productProvider);
+                          return result;
                         }
+                        return null;
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

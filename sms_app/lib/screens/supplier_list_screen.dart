@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../helpers/notification_helper.dart';
 import '../models/supplier_model.dart';
 import '../providers/supplier_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -44,20 +43,6 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(supplierProvider);
     final notifier = ref.read(supplierProvider.notifier);
-    ref.listen<AsyncValue<void>>(supplierActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          // Only show success if previous state was loading (i.e. after an action)
-          if (previous?.isLoading == true) {
-            showSuccess("Data deleted successfully");
-          }
-        },
-        error: (err, _) {
-          showError(err.toString());
-        },
-      );
-    });
-
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -162,9 +147,9 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
                       },
                       onDelete: () async {
                         if (supplier.id != null) {
-                          await ref.read(supplierActionProvider.notifier).deleteData(supplier.id!);
-                          notifier.refresh();
+                          return await ref.read(supplierActionProvider.notifier).deleteData(supplier.id!);
                         }
+                        return null;
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

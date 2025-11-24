@@ -25,12 +25,12 @@ class PurchaseOrder {
     json = json ?? {};
     return PurchaseOrder(
       id: JsonUtils.parseInt(json['Id']),
-      transNumber: JsonUtils.parseString(json['TransNumber']),
-      transDate: _parseDate(json['TransDate']),
-      supplierId: JsonUtils.parseInt(json['SupplierId']) ?? 0,
-      supplier: Supplier.fromJson(JsonUtils.ensureMap(json['Supplier'])),
-      grandTotal: JsonUtils.parseDouble(json['GrandTotal']),
-      items: _parseItems(json['Items']),
+      transNumber: JsonUtils.parseString(json['transNumber']),
+      transDate: _parseDate(json['transDate']),
+      supplierId: JsonUtils.parseInt(json['supplierId']) ?? 0,
+      supplier: Supplier.fromJson(JsonUtils.ensureMap(json['supplier'])),
+      grandTotal: JsonUtils.parseDouble(json['grandTotal']),
+      items: _parseItems(json['items']),
     );
   }
 

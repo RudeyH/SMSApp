@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../helpers/notification_helper.dart';
 import '../models/customer_model.dart';
 import '../providers/customer_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -44,20 +43,6 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(customerProvider);
     final notifier = ref.read(customerProvider.notifier);
-    ref.listen<AsyncValue<void>>(customerActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          // Only show success if previous state was loading (i.e. after an action)
-          if (previous?.isLoading == true) {
-            showSuccess("Data deleted successfully");
-          }
-        },
-        error: (err, _) {
-          showError(err.toString());
-        },
-      );
-    });
-
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -164,9 +149,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                       },
                       onDelete: () async {
                         if (customer.id != null) {
-                          await ref.read(customerActionProvider.notifier).deleteData(customer.id!);
-                          notifier.refresh();
+                          return await ref.read(customerActionProvider.notifier).deleteData(customer.id!);
                         }
+                        return null;
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

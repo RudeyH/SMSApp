@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../helpers/notification_helper.dart';
 import '../models/purchase_order_model.dart';
 import '../providers/product_provider.dart';
 import '../providers/purchase_order_provider.dart';
@@ -46,19 +45,6 @@ class _PurchaseOrderListScreenState
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(purchaseOrderProvider);
     final notifier = ref.read(purchaseOrderProvider.notifier);
-    ref.listen<AsyncValue<void>>(purchaseOrderActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          // Only show success if previous state was loading (i.e. after an action)
-          if (previous?.isLoading == true) {
-            showSuccess("Data deleted successfully");
-          }
-        },
-        error: (err, _) {
-          showError(err.toString());
-        },
-      );
-    });
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -159,9 +145,11 @@ class _PurchaseOrderListScreenState
                       },
                       onDelete: () async {
                         if (order.id != null) {
-                          await ref.read(purchaseOrderActionProvider.notifier).deleteData(order.id!);
-                          notifier.refresh();
+                          final result = await ref.read(purchaseOrderActionProvider.notifier).deleteData(order.id!);
+                          ref.invalidate(productProvider);
+                          return result;
                         }
+                        return null;
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,242 +211,3 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_StickyHeaderDelegate oldDelegate) => false;
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import '../models/purchase_order_model.dart';
-// import '../providers/purchase_order_provider.dart';
-// import '../widgets/swipeable_list_tile.dart';
-// import '../widgets/sticky_search_bar.dart';
-// import 'purchase_order_detail_screen.dart';
-//
-// class PurchaseOrderListScreen extends ConsumerStatefulWidget {
-//   const PurchaseOrderListScreen({super.key});
-//
-//   @override
-//   ConsumerState<PurchaseOrderListScreen> createState() =>
-//       _PurchaseOrderListScreenState();
-// }
-//
-// class _PurchaseOrderListScreenState
-//     extends ConsumerState<PurchaseOrderListScreen> {
-//   final TextEditingController _searchController = TextEditingController();
-//
-//   Future<void> _refreshData() async {
-//     ref.invalidate(purchaseOrderProvider);
-//     await Future.delayed(const Duration(milliseconds: 300));
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final dataAsync = ref.watch(purchaseOrderProvider);
-//
-//     return Scaffold(
-//       body: dataAsync.when(
-//         data: (items) {
-//           if (items.isEmpty) {
-//             return const Center(child: Text('No purchase orders available.'));
-//           }
-//
-//           final query = _searchController.text.toLowerCase();
-//           final filteredItems = items.where((order) {
-//             return order.transNumber.toLowerCase().contains(query) ||
-//                 order.supplier.name.toLowerCase().contains(query);
-//           }).toList();
-//
-//           return RefreshIndicator(
-//             color: Colors.blueAccent,
-//             onRefresh: _refreshData,
-//             child: CustomScrollView(
-//               slivers: [
-//                 SliverToBoxAdapter(
-//                   child: StickySearchBar(
-//                     controller: _searchController,
-//                     hintText: 'Search by number or supplier...',
-//                     onChanged: (_) => setState(() {}),
-//                   ),
-//                 ),
-//                 SliverList.builder(
-//                   itemCount: filteredItems.length,
-//                   itemBuilder: (_, index) {
-//                     final order = filteredItems[index];
-//                     return SwipeableListTile<PurchaseOrder>(
-//                       item: order,
-//                       deleteConfirmMessage:
-//                       'Are you sure you want to delete "${order.transNumber}"?',
-//                       onTap: () {
-//                         Navigator.push(
-//                           context,
-//                           MaterialPageRoute(
-//                             builder: (_) =>
-//                                 PurchaseOrderDetailScreen(data: order),
-//                           ),
-//                         );
-//                       },
-//                       onDelete: () async {
-//                         if (order.id != null) {
-//                           await ref
-//                               .read(purchaseOrderActionProvider.notifier)
-//                               .deleteData(order.id!);
-//                         }
-//                       },
-//                       contentBuilder: (_, data) => Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             data.transNumber,
-//                             style: const TextStyle(
-//                                 fontSize: 16, fontWeight: FontWeight.bold),
-//                           ),
-//                           const SizedBox(height: 4),
-//                           Text('Supplier: ${data.supplier.name}',
-//                               style: const TextStyle(fontSize: 14)),
-//                           Text(
-//                             'Date: ${data.transDate.toLocal().toString().split(' ')[0]}',
-//                             style: const TextStyle(fontSize: 14),
-//                           ),
-//                           Text('Total: ${data.grandTotal.toStringAsFixed(2)}',
-//                               style: const TextStyle(fontSize: 14)),
-//                         ],
-//                       ),
-//                     );
-//                   },
-//                 ),
-//               ],
-//             ),
-//           );
-//         },
-//         loading: () => const Center(child: CircularProgressIndicator()),
-//         error: (err, _) => Center(child: Text('Error: $err')),
-//       ),
-//       floatingActionButton: FloatingActionButton(
-//         onPressed: () => Navigator.push(
-//           context,
-//           MaterialPageRoute(
-//             builder: (_) => const PurchaseOrderDetailScreen(),
-//           ),
-//         ),
-//         child: const Icon(Icons.add),
-//       ),
-//     );
-//   }
-// }
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import '../models/purchase_order_model.dart';
-// import '../providers/purchase_order_provider.dart';
-// import '../screens/purchase_order_detail_screen.dart';
-// import '../widgets/swipeable_list_tile.dart';
-//
-// class PurchaseOrderListScreen extends ConsumerStatefulWidget {
-//   const PurchaseOrderListScreen({super.key});
-//
-//   @override
-//   ConsumerState<PurchaseOrderListScreen> createState() =>
-//       _PurchaseOrderListScreenState();
-// }
-//
-// class _PurchaseOrderListScreenState extends ConsumerState<PurchaseOrderListScreen> {
-//   Future<void> _refreshData() async {
-//     ref.invalidate(purchaseOrderProvider);
-//     await Future.delayed(const Duration(milliseconds: 300));
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     ref.listen<AsyncValue<void>>(purchaseOrderActionProvider, (previous, next) {
-//       next.whenOrNull(
-//         data: (_) {
-//           if (!mounted) return;
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             const SnackBar(
-//               content: Text('Action completed successfully!'),
-//               backgroundColor: Colors.green,
-//             ),
-//           );
-//           ref.invalidate(purchaseOrderProvider); // refresh product list
-//         },
-//         error: (error, _) {
-//           if (!mounted) return;
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             SnackBar(
-//               content: Text('Error: $error'),
-//               backgroundColor: Colors.red,
-//             ),
-//           );
-//         },
-//       );
-//     });
-//
-//     final dataAsync = ref.watch(purchaseOrderProvider);
-//
-//     return Scaffold(
-//       body: dataAsync.when(
-//         data: (items) {
-//           if (items.isEmpty) {
-//             return const Center(child: Text('No data available.'));
-//           }
-//
-//           return RefreshIndicator(
-//             color: Colors.blueAccent,
-//             onRefresh: _refreshData,
-//             child: ListView.builder(
-//               physics: const AlwaysScrollableScrollPhysics(),
-//               itemCount: items.length,
-//               itemBuilder: (_, index) {
-//                 final item = items[index];
-//
-//                 return SwipeableListTile<PurchaseOrder>(
-//                   item: item,
-//                   deleteConfirmMessage:
-//                   'Are you sure you want to delete "${item.transNumber}"?',
-//                   onTap: () {
-//                     Navigator.push(
-//                       context,
-//                       MaterialPageRoute(
-//                         builder: (_) =>
-//                             PurchaseOrderDetailScreen(data: item),
-//                       ),
-//                     );
-//                   },
-//                   onDelete: () async {
-//                     if (item.id != null) {
-//                       await ref
-//                           .read(purchaseOrderActionProvider.notifier)
-//                           .deleteData(item.id!);
-//                     }
-//                   },
-//                   contentBuilder: (_, data) => Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Text(
-//                         data.transNumber,
-//                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-//                       const SizedBox(height: 4),
-//                       Text('Date: ${item.transDate}',
-//                         style: const TextStyle(fontSize: 14)),
-//                       Text('Supplier: [ ${item.supplier.code} ] ${item.supplier.name}',
-//                         style: const TextStyle(fontSize: 14, color: Colors.green)),
-//                     ],
-//                   ),
-//                 );
-//               },
-//             ),
-//           );
-//         },
-//         loading: () => const Center(child: CircularProgressIndicator()),
-//         error: (err, _) => Center(child: Text('Error: $err')),
-//       ),
-//       floatingActionButton: FloatingActionButton(
-//         onPressed: () => Navigator.push(
-//           context,
-//           MaterialPageRoute(
-//             builder: (_) => const PurchaseOrderDetailScreen(),
-//           ),
-//         ),
-//         child: const Icon(Icons.add),
-//       ),
-//     );
-//   }
-// }

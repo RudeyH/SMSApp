@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// A reusable sticky search bar widget that stays pinned
-/// when scrolling in a CustomScrollView (Flutter 3.9+ compatible).
 class StickySearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;

@@ -8,6 +8,7 @@ import '../models/sales_order_model.dart';
 import '../providers/product_provider.dart';
 import '../providers/sales_order_provider.dart';
 import '../reports/sales_order_invoice_pdf.dart';
+import '../utils/action_result.dart';
 import 'customer_lookup_screen.dart';
 import 'product_lookup_screen.dart';
 
@@ -55,12 +56,25 @@ class _SalesOrderDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final actionState = ref.watch(salesOrderActionProvider);
-    ref.listen<AsyncValue<void>>(salesOrderActionProvider, (previous, next) {
+    // final actionState = ref.watch(salesOrderActionProvider);
+    // ref.listen<AsyncValue<void>>(salesOrderActionProvider, (previous, next) {
+    //   next.whenOrNull(
+    //     data: (_) {
+    //       showSuccess(isEditing ? "Data updated!" : "Data created!");
+    //       Navigator.pop(context);
+    //     },
+    //     error: (err, _) {
+    //       showError(err.toString());
+    //     },
+    //   );
+    // });
+    ref.listen<AsyncValue<ActionResult?>>(salesOrderActionProvider, (previous, next) {
       next.whenOrNull(
-        data: (_) {
-          showSuccess(isEditing ? "Data updated!" : "Data created!");
-          Navigator.pop(context);
+        data: (result) {
+          if (result != null) {
+            showSuccess(result.message);
+            Navigator.pop(context, true);
+          }
         },
         error: (err, _) {
           showError(err.toString());
@@ -68,8 +82,7 @@ class _SalesOrderDetailScreenState
       );
     });
 
-
-    // final actionState = ref.watch(salesOrderActionProvider);
+    final actionState = ref.watch(salesOrderActionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -162,14 +175,6 @@ class _SalesOrderDetailScreenState
           ),
         ),
       ),
-      // floatingActionButton: isEditing && items.isNotEmpty
-      //     ? FloatingActionButton.extended(
-      //   onPressed: _printInvoice,
-      //   icon: const Icon(Icons.print),
-      //   label: const Text('Print Invoice'),
-      //   backgroundColor: Colors.blueAccent,
-      // )
-      //     : null,
     );
   }
 

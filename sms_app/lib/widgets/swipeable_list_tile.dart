@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../helpers/notification_helper.dart';
+import '../utils/action_result.dart';
 
 class SwipeableListTile<T> extends StatefulWidget {
   final T item;
   final String? deleteConfirmMessage;
-  final Future<void> Function()? onDelete;
+  final Future<ActionResult?> Function()? onDelete;
   final void Function()? onTap;
   final Widget Function(BuildContext, T) contentBuilder;
   final bool enableDelete;
@@ -23,7 +25,7 @@ class SwipeableListTile<T> extends StatefulWidget {
 }
 
 class _SwipeableListTileState<T> extends State<SwipeableListTile<T>> {
-  double _elevation = 0; // 👈 dynamic elevation for lift animation
+  double _elevation = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -110,11 +112,17 @@ class _SwipeableListTileState<T> extends State<SwipeableListTile<T>> {
                 ],
               ),
             );
-            return confirm ?? false;
+            if (confirm != true) return false;
+            try {
+              final result = await widget.onDelete?.call();
+              showSuccess(result?.message ?? "Success");
+              return true;
+            } catch (e) {
+              showError(e.toString());
+              return false;
+            }
           },
-          onDismissed: (_) => widget.onDelete?.call(),
           onUpdate: (details) {
-            // 👇 slight lift when swiping
             setState(() => _elevation = details.progress > 0 ? 3 : 0);
           },
           child: tile,

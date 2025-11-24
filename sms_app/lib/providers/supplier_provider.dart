@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/api_response_model.dart';
 import '../models/supplier_model.dart';
+import '../utils/action_result.dart';
 import 'auth_provider.dart';
 
 final String baseUrl = '${Config().baseUrl}/supplier';
@@ -125,74 +126,97 @@ class SupplierNotifier extends AsyncNotifier<List<Supplier>> {
 
 /// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
 final supplierActionProvider =
-AsyncNotifierProvider<SupplierActionNotifier, void>(SupplierActionNotifier.new);
+AsyncNotifierProvider<SupplierActionNotifier, ActionResult?>(SupplierActionNotifier.new);
 
-class SupplierActionNotifier extends AsyncNotifier<void> {
+class SupplierActionNotifier extends AsyncNotifier<ActionResult?> {
   @override
-  FutureOr<void> build() {}
+  ActionResult? build() => null;
 
-  Future<void> createData(Supplier data) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final response = await ref
-          .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.post(
-          Uri.parse(baseUrl),
-          headers: {...headers,'Content-Type': 'application/json'},
-          body: jsonEncode(data.toJson()),
-        );
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-      if (!api.success) {
-        throw Exception(api.message ?? 'Failed to create data');
-      }
-      ref.invalidate(supplierProvider);
-    });
-  }
-
-  Future<void> updateData(Supplier data) async {
-    if (data.id == null) {
-      throw Exception('Cannot update data without ID');
-    }
-
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final response = await ref
-          .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.put(
-          Uri.parse(baseUrl),
-          headers: {...headers,'Content-Type': 'application/json'},
-          body: jsonEncode(data.toJson()),
-        );
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-      if (!api.success) {
-        throw Exception(api.message ?? 'Failed to update data');
-      }
-      ref.invalidate(supplierProvider);
-    });
-  }
-
-  Future<String?> deleteData(int id) async {
+  Future<ActionResult> _handleRequest({
+    required Future<http.Response> Function(Map<String, String> headers)
+    requestFn,
+    required ActionType actionType,
+  }) async {
     state = const AsyncLoading();
 
     try {
       final response = await ref
           .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.delete(Uri.parse('$baseUrl/$id'),headers: headers);
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+          .authenticatedRequest(ref, requestFn);
+
+      final api = ApiResponse.fromJson(jsonDecode(response.body));
+
       if (!api.success) {
-        return api.message ?? 'Failed to delete data';
+        // choose correct failure message
+        final failMessage = switch (actionType) {
+          ActionType.created => ActionMessage.createFailed,
+          ActionType.updated => ActionMessage.updateFailed,
+          ActionType.deleted => ActionMessage.deleteFailed,
+        };
+        throw Exception(api.message ?? failMessage);
       }
-      state = const AsyncData(null);
-      return null; // success
+
+      // Refresh product list
+      ref.invalidate(supplierProvider);
+
+      // choose correct success message
+      final successMessage = switch (actionType) {
+        ActionType.created => ActionMessage.created,
+        ActionType.updated => ActionMessage.updated,
+        ActionType.deleted => ActionMessage.deleted,
+      };
+
+      final result = ActionResult(actionType, successMessage);
+      state = AsyncData(result);
+      return result;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
     }
+  }
+
+  // CREATE
+  Future<ActionResult> createData(Supplier data) {
+    return _handleRequest(
+      actionType: ActionType.created,
+      requestFn: (headers) {
+        return http.post(
+          Uri.parse(baseUrl),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(data.toJson()),
+        );
+      },
+    );
+  }
+
+  // UPDATE
+  Future<ActionResult> updateData(Supplier data) {
+    if (data.id == null) {
+      throw Exception("Cannot update data without ID");
+    }
+
+    return _handleRequest(
+      actionType: ActionType.updated,
+      requestFn: (headers) {
+        return http.put(
+          Uri.parse(baseUrl),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(data.toJson()),
+        );
+      },
+    );
+  }
+
+  // DELETE
+  Future<ActionResult> deleteData(int id) {
+    return _handleRequest(
+      actionType: ActionType.deleted,
+      requestFn: (headers) {
+        return http.delete(
+          Uri.parse('$baseUrl/$id'),
+          headers: headers,
+        );
+      },
+    );
   }
 }

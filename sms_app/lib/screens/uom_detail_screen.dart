@@ -30,25 +30,22 @@ class _UomDetailScreenState extends ConsumerState<UomDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Safe placement for ref.listen
-    ref.listen<AsyncValue<void>>(uomActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          if (!mounted) return;
-          showSuccess(
-            isEditing
-                ? "Data updated successfully"
-                : "Data created successfully",
-          );
+    ref.listen(
+      uomActionProvider,
+          (previous, next) {
+        next.whenOrNull(
+          data: (result) {
+            if (result != null) {
+              showSuccess(result.message);
+            }
+          },
+          error: (err, _) {
+            showError(err.toString());
+          },
+        );
+      },
+    );
 
-          Navigator.pop(context);
-        },
-        error: (err, _) {
-          if (!mounted) return;
-          showError(err.toString());
-        },
-      );
-    });
     final actionState = ref.watch(uomActionProvider);
 
     return Scaffold(
@@ -80,29 +77,39 @@ class _UomDetailScreenState extends ConsumerState<UomDetailScreen> {
                   : ElevatedButton.icon(
                 icon: Icon(isEditing ? Icons.save : Icons.add),
                 label: Text(isEditing ? 'Update Data' : 'Save Data'),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final data = UOM(
-                      id: widget.data?.id ?? 0,
-                      code: _codeController.text.trim(),
-                      name: _nameController.text.trim(),
-                    );
-
-                    final notifier =
-                    ref.read(uomActionProvider.notifier);
-                    if (isEditing) {
-                      notifier.updateData(data);
-                    } else {
-                      notifier.createData(data);
-                    }
-                  }
-                },
+                onPressed: _submit,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final savedData = UOM(
+      id: widget.data?.id ?? 0,
+      code: _codeController.text.trim(),
+      name: _nameController.text.trim(),
+    );
+
+    final notifier = ref.read(uomActionProvider.notifier);
+
+    try {
+      if (isEditing) {
+        await notifier.updateData(savedData);
+      } else {
+        await notifier.createData(savedData);
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      showError(e.toString());
+    }
   }
 
   @override

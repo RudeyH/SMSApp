@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// A reusable, animated list card with:
-/// ✅ Tap to edit
-/// ✅ Swipe left to delete (with confirmation)
-/// ✅ Rounded card style + soft shadows
 class SwipeableListCard<T> extends StatelessWidget {
   final T item;
   final Widget Function(BuildContext, T) contentBuilder;

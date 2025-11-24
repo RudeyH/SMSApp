@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:pdf/widgets.dart' as pw;
@@ -9,9 +10,8 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
-// import 'package:open_filex/open_filex.dart';
-
 import '../config.dart';
+
 
 class ProductReportScreen extends StatefulWidget {
   const ProductReportScreen({super.key});
@@ -26,16 +26,33 @@ class _ProductReportScreenState extends State<ProductReportScreen> {
 
   Future<void> _fetchProducts() async {
     setState(() => _isLoading = true);
+
     try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'jwt');
+
+
+      if (token == null) {
+        throw Exception("Not authenticated");
+      }
+
       final response = await http.get(
-        Uri.parse('${Config().baseUrl}/product'),
+        Uri.parse('${Config().baseUrl}/product?page=1&pageSize=9999'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() => _products = data);
+        final api = jsonDecode(response.body);
+        if (api['success'] == true) {
+          setState(() => _products = api['data']);
+        } else {
+          throw Exception(api['message'] ?? 'API Error');
+        }
       } else {
-        throw Exception('Failed to load products');
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
       if (mounted) {
@@ -47,6 +64,7 @@ class _ProductReportScreenState extends State<ProductReportScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   Future<void> _generatePdf() async {
     if (_products.isEmpty) {
@@ -95,10 +113,10 @@ class _ProductReportScreenState extends State<ProductReportScreen> {
           pw.TableHelper.fromTextArray(
             headers: ['Product Name', 'Code', 'Quantity', 'Price (Rp)'],
             data: _products.map((p) {
-              final name = p['Name'] ?? '';
-              final code = p['Code'] ?? '';
-              final qty = p['Quantity'] ?? 0;
-              final price = currency.format(p['Price'] ?? 0);
+              final name = p['name'] ?? '';
+              final code = p['code'] ?? '';
+              final qty = p['quantity'] ?? 0;
+              final price = currency.format(p['price'] ?? 0);
               return [name, code, qty.toString(), price];
             }).toList(),
             headerStyle: pw.TextStyle(
@@ -168,10 +186,10 @@ class _ProductReportScreenState extends State<ProductReportScreen> {
     for (int row = 0; row < _products.length; row++) {
       final p = _products[row];
       final values = [
-        p['Name'] ?? '',
-        p['Code'] ?? '',
-        p['Quantity'] ?? 0,
-        p['Price'] ?? 0,
+        p['name'] ?? '',
+        p['code'] ?? '',
+        p['quantity'] ?? 0,
+        p['price'] ?? 0,
       ];
       for (int col = 0; col < values.length; col++) {
         sheet
@@ -245,9 +263,9 @@ class _ProductReportScreenState extends State<ProductReportScreen> {
                 p['Name'] ?? '',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              subtitle: Text('Code: ${p['Code'] ?? ''}'),
+              subtitle: Text('Code: ${p['code'] ?? ''}'),
               trailing: Text(
-                'Qty: ${p['Quantity'] ?? 0}\nRp ${p['Price'] ?? 0}',
+                'Qty: ${p['quantity'] ?? 0}\nRp ${p['price'] ?? 0}',
                 textAlign: TextAlign.right,
               ),
             ),

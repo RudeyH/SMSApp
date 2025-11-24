@@ -18,13 +18,16 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   final _formKey = GlobalKey<FormState>();
+
   late final TextEditingController _codeController;
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   late final TextEditingController _quantityController;
+  late final TextEditingController _uomNameController;
+
   int? _uomId;
   UOM? _uom;
-  late TextEditingController _uomNameController;
+
   bool get isEditing => widget.data != null;
 
   @override
@@ -37,32 +40,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     _quantityController =
         TextEditingController(text: widget.data?.quantity.toString() ?? '');
     _uomId = widget.data?.uomId ?? 0;
-    _uom = widget.data?.uom; // ✅ no default Uom object
-    _uomNameController = TextEditingController(
-      text: widget.data?.uom.name ?? '',
-    );
+    _uom = widget.data?.uom;
+    _uomNameController =
+        TextEditingController(text: widget.data?.uom.name ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<void>>(productActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          if (!mounted) return;
-          showSuccess(
-            isEditing
-                ? "Data updated successfully"
-                : "Data created successfully",
-          );
+    ref.listen(
+      productActionProvider,
+          (previous, next) {
+        next.whenOrNull(
+          data: (result) {
+            if (result != null) {
+              showSuccess(result.message);
+            }
+          },
+          error: (err, _) {
+            showError(err.toString());
+          },
+        );
+      },
+    );
 
-          Navigator.pop(context);
-        },
-        error: (err, _) {
-          if (!mounted) return;
-          showError(err.toString());
-        },
-      );
-    });
     final actionState = ref.watch(productActionProvider);
 
     return Scaffold(
@@ -104,7 +104,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               ),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: _selectUom, // 👈 open lookup on tap
+                onTap: _selectUom,
                 child: AbsorbPointer(
                   child: TextFormField(
                     controller: _uomNameController,
@@ -112,9 +112,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       labelText: 'Uom',
                       suffixIcon: Icon(Icons.search),
                     ),
-                    validator: (value) => value!.isEmpty
-                        ? 'Please select a uom'
-                        : null,
+                    validator: (value) =>
+                    value!.isEmpty ? 'Please select a uom' : null,
                   ),
                 ),
               ),
@@ -124,31 +123,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   : ElevatedButton.icon(
                 icon: Icon(isEditing ? Icons.save : Icons.add),
                 label: Text(isEditing ? 'Update Data' : 'Save Data'),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final product = Product(
-                      id: widget.data?.id ?? 0,
-                      code: _codeController.text.trim(),
-                      name: _nameController.text.trim(),
-                      price: double.tryParse(
-                          _priceController.text.trim()) ??
-                          0,
-                      quantity: double.tryParse(
-                          _quantityController.text.trim()) ??
-                          0,
-                      uomId: _uomId ?? 0,
-                      uom: _uom ?? UOM(id: 0, code: '', name: ''),
-                    );
-
-                    final notifier =
-                    ref.read(productActionProvider.notifier);
-                    if (isEditing) {
-                      notifier.updateData(product);
-                    } else {
-                      notifier.createData(product);
-                    }
-                  }
-                },
+                onPressed: _submit,
               ),
             ],
           ),
@@ -157,14 +132,34 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _codeController.dispose();
-    _nameController.dispose();
-    _priceController.dispose();
-    _quantityController.dispose();
-    _uomNameController.dispose();
-    super.dispose();
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final product = Product(
+      id: widget.data?.id ?? 0,
+      code: _codeController.text.trim(),
+      name: _nameController.text.trim(),
+      price: double.tryParse(_priceController.text.trim()) ?? 0,
+      quantity: double.tryParse(_quantityController.text.trim()) ?? 0,
+      uomId: _uomId ?? 0,
+      uom: _uom ?? UOM(id: 0, code: '', name: ''),
+    );
+
+    final notifier = ref.read(productActionProvider.notifier);
+
+    try {
+      if (isEditing) {
+        await notifier.updateData(product);
+      } else {
+        await notifier.createData(product);
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      showError(e.toString());
+    }
   }
 
   Future<void> _selectUom() async {
@@ -181,4 +176,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       });
     }
   }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _nameController.dispose();
+    _priceController.dispose();
+    _quantityController.dispose();
+    _uomNameController.dispose();
+    super.dispose();
+  }
 }
+

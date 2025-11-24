@@ -35,25 +35,22 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Safe placement for ref.listen
-    ref.listen<AsyncValue<void>>(supplierActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          if (!mounted) return;
-          showSuccess(
-            isEditing
-                ? "Data updated successfully"
-                : "Data created successfully",
-          );
+    ref.listen(
+      supplierActionProvider,
+          (previous, next) {
+        next.whenOrNull(
+          data: (result) {
+            if (result != null) {
+              showSuccess(result.message);
+            }
+          },
+          error: (err, _) {
+            showError(err.toString());
+          },
+        );
+      },
+    );
 
-          Navigator.pop(context);
-        },
-        error: (err, _) {
-          if (!mounted) return;
-          showError(err.toString());
-        },
-      );
-    });
     final actionState = ref.watch(supplierActionProvider);
 
     return Scaffold(
@@ -100,31 +97,61 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
                   : ElevatedButton.icon(
                 icon: Icon(isEditing ? Icons.save : Icons.add),
                 label: Text(isEditing ? 'Update Data' : 'Save Data'),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final product = Supplier(
-                      id: widget.data?.id ?? 0,
-                      code: _codeController.text.trim(),
-                      name: _nameController.text.trim(),
-                      address: _addressController.text.trim(),
-                      contactNo: _contactNoController.text.trim(),
-                    );
-
-                    final notifier =
-                    ref.read(supplierActionProvider.notifier);
-                    if (isEditing) {
-                      notifier.updateData(product);
-                    } else {
-                      notifier.createData(product);
-                    }
-                  }
-                },
+                onPressed: _submit,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final savedData = Supplier(
+      id: widget.data?.id ?? 0,
+      code: _codeController.text.trim(),
+      name: _nameController.text.trim(),
+      address: _addressController.text.trim(),
+      contactNo: _contactNoController.text.trim(),
+    );
+
+    final notifier = ref.read(supplierActionProvider.notifier);
+
+    try {
+      if (isEditing) {
+        await notifier.updateData(savedData);
+      } else {
+        await notifier.createData(savedData);
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      showError(e.toString());
+    }
+  }
+
+  String? validatePhoneIndonesia(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a contact number';
+    }
+    final cleaned = value.replaceAll(RegExp(r'[^0-9+]'), '');
+    // +62xxxxxxxxxx
+    if (RegExp(r'^\+62[0-9]{8,13}$').hasMatch(cleaned)) {
+      return null;
+    }
+    // 62xxxxxxxxxx (no +)
+    if (RegExp(r'^62[0-9]{8,13}$').hasMatch(cleaned)) {
+      return null;
+    }
+    // 08xxxxxxxxxx
+    if (RegExp(r'^0[0-9]{9,13}$').hasMatch(cleaned)) {
+      return null;
+    }
+    return 'Invalid Indonesian phone number format';
   }
 
   @override
@@ -134,30 +161,5 @@ class _SupplierDetailScreenState extends ConsumerState<SupplierDetailScreen> {
     _addressController.dispose();
     _contactNoController.dispose();
     super.dispose();
-  }
-
-  String? validatePhoneIndonesia(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter a contact number';
-    }
-
-    final cleaned = value.replaceAll(RegExp(r'[^0-9+]'), '');
-
-    // +62xxxxxxxxxx
-    if (RegExp(r'^\+62[0-9]{8,13}$').hasMatch(cleaned)) {
-      return null;
-    }
-
-    // 62xxxxxxxxxx (no +)
-    if (RegExp(r'^62[0-9]{8,13}$').hasMatch(cleaned)) {
-      return null;
-    }
-
-    // 08xxxxxxxxxx
-    if (RegExp(r'^0[0-9]{9,13}$').hasMatch(cleaned)) {
-      return null;
-    }
-
-    return 'Invalid Indonesian phone number format';
   }
 }

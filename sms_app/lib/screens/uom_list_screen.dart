@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../helpers/notification_helper.dart';
 import '../models/uom_model.dart';
 import '../providers/uom_provider.dart';
 import '../widgets/swipeable_list_tile.dart';
@@ -44,19 +43,6 @@ class _UomListScreenState extends ConsumerState<UomListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(uomProvider);
     final notifier = ref.read(uomProvider.notifier);
-    ref.listen<AsyncValue<void>>(uomActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          // Only show success if previous state was loading (i.e. after an action)
-          if (previous?.isLoading == true) {
-            showSuccess("Data deleted successfully");
-          }
-        },
-        error: (err, _) {
-          showError(err.toString());
-        },
-      );
-    });
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -155,9 +141,9 @@ class _UomListScreenState extends ConsumerState<UomListScreen> {
                       },
                       onDelete: () async {
                         if (uom.id != null) {
-                          await ref.read(uomActionProvider.notifier).deleteData(uom.id!);
-                          notifier.refresh();
+                          return await ref.read(uomActionProvider.notifier).deleteData(uom.id!);
                         }
+                        return null;
                       },
                       contentBuilder: (_, data) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

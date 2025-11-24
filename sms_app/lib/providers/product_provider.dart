@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/api_response_model.dart';
 import '../models/product_model.dart';
+import '../utils/action_result.dart';
 import 'auth_provider.dart';
 
 final String baseUrl = '${Config().baseUrl}/product';
@@ -41,38 +42,6 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
     await prefs.setBool('productSortAsc', _sortAsc);
   }
 
-  // Future<List<Product>> _fetchPage({bool reset = false}) async {
-  //   if (reset) {
-  //     _currentPage = 1;
-  //     _hasMore = true;
-  //   }
-  //
-  //   final uri = Uri.parse(
-  //     '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery',
-  //   );
-  //
-  //   final response = await ref
-  //       .read(authProvider.notifier)
-  //       .authenticatedRequest(ref, (headers) {
-  //     return http.get(uri, headers: headers);
-  //   });
-  //
-  //   final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-  //   if (!api.success) {
-  //     throw Exception(api.message ?? 'Failed to load data');
-  //   }
-  //   final List<dynamic> data = api.data as List<dynamic>;
-  //
-  //   if (data.length < _pageSize) _hasMore = false;
-  //   List<Product> products =
-  //   data.map((e) => Product.fromJson(e)).toList();
-  //   _applySort(products);
-  //   if (!reset) {
-  //     final current = state.value ?? [];
-  //     return [...current, ...products];
-  //   }
-  //   return products;
-  // }
   Future<List<Product>> _fetchPage({bool reset = false}) async {
     if (reset) {
       _currentPage = 1;
@@ -81,15 +50,12 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
 
     final uri = Uri.parse(
         '$baseUrl?page=$_currentPage&pageSize=$_pageSize&search=$_searchQuery');
-
     final response = await ref
         .read(authProvider.notifier)
         .authenticatedRequest(ref, (headers) {
       return http.get(uri, headers: headers);
     });
-
     final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-
     if (!api.success) {
       throw Exception(api.message ?? 'Failed to load data');
     }
@@ -163,73 +129,100 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
 
 /// ✅ This provider manages Create, Update, Delete (POST/PUT/DELETE)
 final productActionProvider =
-AsyncNotifierProvider<ProductActionNotifier, void>(ProductActionNotifier.new);
+AsyncNotifierProvider<ProductActionNotifier, ActionResult?>(
+  ProductActionNotifier.new,
+);
 
-class ProductActionNotifier extends AsyncNotifier<void> {
+class ProductActionNotifier extends AsyncNotifier<ActionResult?> {
   @override
-  FutureOr<void> build() {}
+  ActionResult? build() => null;
 
-  Future<void> createData(Product data) async {
+  Future<ActionResult> _handleRequest({
+    required Future<http.Response> Function(Map<String, String> headers)
+    requestFn,
+    required ActionType actionType,
+  }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final response = await ref
-          .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.post(
-          Uri.parse(baseUrl),
-          headers: {...headers,'Content-Type': 'application/json'},
-          body: jsonEncode(data.toCreateJson()),
-        );
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-      if (!api.success) {
-        throw Exception(api.message ?? 'Failed to create data');
-      }
-      ref.invalidate(productProvider);
-    });
-  }
 
-  Future<void> updateData(Product data) async {
-    if (data.id == null) {
-      throw Exception('Cannot update data without ID');
-    }
-
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final response = await ref
-          .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.put(
-          Uri.parse(baseUrl),
-          headers: {...headers,'Content-Type': 'application/json'},
-          body: jsonEncode(data.toUpdateJson()),
-        );
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-      if (!api.success) {
-        throw Exception(api.message ?? 'Failed to update data');
-      }
-      ref.invalidate(productProvider);
-    });
-  }
-
-  Future<String?> deleteData(int id) async {
-    state = const AsyncLoading();
     try {
       final response = await ref
           .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.delete(Uri.parse('$baseUrl/$id'),headers: headers);
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+          .authenticatedRequest(ref, requestFn);
+
+      final api = ApiResponse.fromJson(jsonDecode(response.body));
+
       if (!api.success) {
-        return api.message ?? 'Failed to delete data';
+        // choose correct failure message
+        final failMessage = switch (actionType) {
+          ActionType.created => ActionMessage.createFailed,
+          ActionType.updated => ActionMessage.updateFailed,
+          ActionType.deleted => ActionMessage.deleteFailed,
+        };
+        throw Exception(api.message ?? failMessage);
       }
-      state = const AsyncData(null);
-      return null; // success
+
+      // Refresh product list
+      ref.invalidate(productProvider);
+
+      // choose correct success message
+      final successMessage = switch (actionType) {
+        ActionType.created => ActionMessage.created,
+        ActionType.updated => ActionMessage.updated,
+        ActionType.deleted => ActionMessage.deleted,
+      };
+
+      final result = ActionResult(actionType, successMessage);
+      state = AsyncData(result);
+      return result;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
     }
   }
+
+  // CREATE
+  Future<ActionResult> createData(Product data) {
+    return _handleRequest(
+      actionType: ActionType.created,
+      requestFn: (headers) {
+        return http.post(
+          Uri.parse(baseUrl),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(data.toCreateJson()),
+        );
+      },
+    );
+  }
+
+  // UPDATE
+  Future<ActionResult> updateData(Product data) {
+    if (data.id == null) {
+      throw Exception("Cannot update data without ID");
+    }
+
+    return _handleRequest(
+      actionType: ActionType.updated,
+      requestFn: (headers) {
+        return http.put(
+          Uri.parse(baseUrl),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(data.toUpdateJson()),
+        );
+      },
+    );
+  }
+
+  // DELETE
+  Future<ActionResult> deleteData(int id) {
+    return _handleRequest(
+      actionType: ActionType.deleted,
+      requestFn: (headers) {
+        return http.delete(
+          Uri.parse('$baseUrl/$id'),
+          headers: headers,
+        );
+      },
+    );
+  }
 }
+

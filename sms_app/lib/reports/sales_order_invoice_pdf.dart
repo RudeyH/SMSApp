@@ -35,9 +35,8 @@ Future<Uint8List> generateSalesOrderInvoice({
   final currency = NumberFormat("#,##0", "id_ID");
 
   double grandTotal = items.fold(0, (sum, item) => sum + item.subtotal);
-  final totalInt = grandTotal.round(); // make sure it's integer
+  final totalInt = grandTotal.round();
   final totalInWords = '${terbilang(totalInt)} rupiah';
-  // String totalInWords = NumberToWord().convert('id', grandTotal.toInt());
 
   pdf.addPage(
     pw.MultiPage(
@@ -147,14 +146,7 @@ Future<Uint8List> generateSalesOrderInvoice({
         ),
 
         pw.SizedBox(height: 6),
-
-        // ✅ FIXED: italic now uses fontStyle
-        // pw.Text(
-        //   'Terbilang: ${toBeginningOfSentenceCase(totalInWords)} rupiah',
-        //   style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-        // ),
         pw.Text('Terbilang: ${totalInWords.toUpperCase()}'),
-
         pw.SizedBox(height: 20),
 
         // Footer

@@ -7,6 +7,7 @@ import '../config.dart';
 import '../models/api_response_model.dart';
 import '../models/sales_order_item_model.dart';
 import '../models/sales_order_model.dart';
+import '../utils/action_result.dart';
 import '../utils/json_utils.dart';
 import 'auth_provider.dart';
 
@@ -128,70 +129,99 @@ class SalesOrderNotifier extends AsyncNotifier<List<SalesOrder>> {
 }
 
 final salesOrderActionProvider =
-AsyncNotifierProvider<SalesOrderActionNotifier, void>(SalesOrderActionNotifier.new);
+AsyncNotifierProvider<SalesOrderActionNotifier, ActionResult?>(SalesOrderActionNotifier.new);
 
-class SalesOrderActionNotifier extends AsyncNotifier<void> {
+class SalesOrderActionNotifier extends AsyncNotifier<ActionResult?> {
   @override
-  FutureOr<void> build() {}
+  ActionResult? build() => null;
 
-  Future<void> createData(SalesOrder data) async {
+
+  Future<ActionResult> _handleRequest({
+    required Future<http.Response> Function(Map<String, String> headers)
+    requestFn,
+    required ActionType actionType,
+  }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+
+    try {
       final response = await ref
           .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.post(
-          Uri.parse(baseUrl),
-          headers: {...headers,'Content-Type': 'application/json'},
-          body: jsonEncode(data.toCreateJson()),
-        );
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-      if (!api.success) {
-        throw Exception(api.message ?? 'Failed to create data');
-      }
-      ref.invalidate(salesOrderProvider);
-    });
-  }
-
-  Future<void> updateData(SalesOrder data) async {
-    if (data.id == null) {
-      throw Exception('Cannot update data without ID');
-    }
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final response = await ref
-          .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.put(
-          Uri.parse(baseUrl),
-          headers: {...headers,'Content-Type': 'application/json'},
-          body: jsonEncode(data.toUpdateJson()),
-        );
-      });
-      final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
-      if (!api.success) {
-        throw Exception(api.message ?? 'Failed to update data');
-      }
-      ref.invalidate(salesOrderProvider);
-    });
-  }
-
-  Future<void> deleteData(int id) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final response = await ref
-          .read(authProvider.notifier)
-          .authenticatedRequest(ref, (headers) {
-        return http.delete(Uri.parse('$baseUrl/$id'), headers: headers);
-      });
+          .authenticatedRequest(ref, requestFn);
 
       final api = ApiResponse.fromJson(jsonDecode(response.body));
 
       if (!api.success) {
-        throw Exception(api.message ?? 'Failed to delete data');
+        // choose correct failure message
+        final failMessage = switch (actionType) {
+          ActionType.created => ActionMessage.createFailed,
+          ActionType.updated => ActionMessage.updateFailed,
+          ActionType.deleted => ActionMessage.deleteFailed,
+        };
+        throw Exception(api.message ?? failMessage);
       }
-    });
+
+      // Refresh product list
+      ref.invalidate(salesOrderProvider);
+
+      // choose correct success message
+      final successMessage = switch (actionType) {
+        ActionType.created => ActionMessage.created,
+        ActionType.updated => ActionMessage.updated,
+        ActionType.deleted => ActionMessage.deleted,
+      };
+
+      final result = ActionResult(actionType, successMessage);
+      state = AsyncData(result);
+      return result;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  // CREATE
+  Future<ActionResult> createData(SalesOrder data) {
+    return _handleRequest(
+      actionType: ActionType.created,
+      requestFn: (headers) {
+        return http.post(
+          Uri.parse(baseUrl),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(data.toCreateJson()),
+        );
+      },
+    );
+  }
+
+  // UPDATE
+  Future<ActionResult> updateData(SalesOrder data) {
+    if (data.id == null) {
+      throw Exception("Cannot update data without ID");
+    }
+
+    return _handleRequest(
+      actionType: ActionType.updated,
+      requestFn: (headers) {
+        return http.put(
+          Uri.parse(baseUrl),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(data.toUpdateJson()),
+        );
+      },
+    );
+  }
+
+  // DELETE
+  Future<ActionResult> deleteData(int id) {
+    return _handleRequest(
+      actionType: ActionType.deleted,
+      requestFn: (headers) {
+        return http.delete(
+          Uri.parse('$baseUrl/$id'),
+          headers: headers,
+        );
+      },
+    );
   }
 
   Future<SalesOrder> createOrderWithoutItems(SalesOrder data) async {
@@ -227,9 +257,7 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
       );
     });
     final api = ApiResponse.fromJson(jsonDecode(response.body));
-    if (!api.success) {
-      throw Exception(api.message ?? 'Failed to add item');
-    }
+    if (!api.success) throw Exception(api.message ?? "Failed to add item");
     return SalesOrderItem.fromJson(JsonUtils.ensureMap(api.data));
   }
 
@@ -260,5 +288,132 @@ class SalesOrderActionNotifier extends AsyncNotifier<void> {
       throw Exception(api.message ?? 'Failed to update customer');
     }
   }
+
+// Future<void> createData(SalesOrder data) async {
+  //   state = const AsyncLoading();
+  //   state = await AsyncValue.guard(() async {
+  //     final response = await ref
+  //         .read(authProvider.notifier)
+  //         .authenticatedRequest(ref, (headers) {
+  //       return http.post(
+  //         Uri.parse(baseUrl),
+  //         headers: {...headers,'Content-Type': 'application/json'},
+  //         body: jsonEncode(data.toCreateJson()),
+  //       );
+  //     });
+  //     final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+  //     if (!api.success) {
+  //       throw Exception(api.message ?? 'Failed to create data');
+  //     }
+  //     ref.invalidate(salesOrderProvider);
+  //   });
+  // }
+  //
+  // Future<void> updateData(SalesOrder data) async {
+  //   if (data.id == null) {
+  //     throw Exception('Cannot update data without ID');
+  //   }
+  //   state = const AsyncLoading();
+  //   state = await AsyncValue.guard(() async {
+  //     final response = await ref
+  //         .read(authProvider.notifier)
+  //         .authenticatedRequest(ref, (headers) {
+  //       return http.put(
+  //         Uri.parse(baseUrl),
+  //         headers: {...headers,'Content-Type': 'application/json'},
+  //         body: jsonEncode(data.toUpdateJson()),
+  //       );
+  //     });
+  //     final ApiResponse api = ApiResponse.fromJson(jsonDecode(response.body));
+  //     if (!api.success) {
+  //       throw Exception(api.message ?? 'Failed to update data');
+  //     }
+  //     ref.invalidate(salesOrderProvider);
+  //   });
+  // }
+  //
+  // Future<void> deleteData(int id) async {
+  //   state = const AsyncLoading();
+  //   state = await AsyncValue.guard(() async {
+  //     final response = await ref
+  //         .read(authProvider.notifier)
+  //         .authenticatedRequest(ref, (headers) {
+  //       return http.delete(Uri.parse('$baseUrl/$id'), headers: headers);
+  //     });
+  //
+  //     final api = ApiResponse.fromJson(jsonDecode(response.body));
+  //
+  //     if (!api.success) {
+  //       throw Exception(api.message ?? 'Failed to delete data');
+  //     }
+  //   });
+  // }
+  //
+  // Future<SalesOrder> createOrderWithoutItems(SalesOrder data) async {
+  //   final response = await ref
+  //       .read(authProvider.notifier)
+  //       .authenticatedRequest(ref, (headers) {
+  //     return http.post(
+  //       Uri.parse(baseUrl),
+  //       headers: {...headers, 'Content-Type': 'application/json'},
+  //       body: jsonEncode(data.toCreateJson()),
+  //     );
+  //   });
+  //   final api = ApiResponse.fromJson(jsonDecode(response.body));
+  //   if (!api.success) {
+  //     throw Exception(api.message ?? 'Failed to create order');
+  //   }
+  //   return SalesOrder.fromJson(JsonUtils.ensureMap(api.data));
+  // }
+  //
+  // Future<SalesOrderItem> addItemToOrder(int orderId, SalesOrderItem item) async {
+  //   final dto = {
+  //     "productId": item.product.id,
+  //     "quantity": item.quantity,
+  //     "unitPrice": item.unitPrice,
+  //   };
+  //   final response = await ref
+  //       .read(authProvider.notifier)
+  //       .authenticatedRequest(ref, (headers) {
+  //     return http.post(
+  //       Uri.parse('$baseUrl/$orderId/items'),
+  //       headers: {...headers, 'Content-Type': 'application/json'},
+  //       body: jsonEncode(dto),
+  //     );
+  //   });
+  //   final api = ApiResponse.fromJson(jsonDecode(response.body));
+  //   if (!api.success) {
+  //     throw Exception(api.message ?? 'Failed to add item');
+  //   }
+  //   return SalesOrderItem.fromJson(JsonUtils.ensureMap(api.data));
+  // }
+  //
+  // Future<void> deleteOrderItem(int itemId) async {
+  //   final response = await ref
+  //       .read(authProvider.notifier)
+  //       .authenticatedRequest(ref, (headers) {
+  //     return http.delete(Uri.parse('$baseUrl/items/$itemId'), headers: headers);
+  //   });
+  //   final api = ApiResponse.fromJson(jsonDecode(response.body));
+  //   if (!api.success) {
+  //     throw Exception(api.message ?? 'Failed to delete item');
+  //   }
+  // }
+  //
+  // Future<void> updateOrderCustomer(int orderId, int customerId) async {
+  //   final response = await ref
+  //       .read(authProvider.notifier)
+  //       .authenticatedRequest(ref, (headers) {
+  //     return http.put(
+  //       Uri.parse('$baseUrl/$orderId/customer'),
+  //       headers: {...headers, 'Content-Type': 'application/json'},
+  //       body: jsonEncode({"customerId": customerId}),
+  //     );
+  //   });
+  //   final api = ApiResponse.fromJson(jsonDecode(response.body));
+  //   if (!api.success) {
+  //     throw Exception(api.message ?? 'Failed to update customer');
+  //   }
+  // }
 
 }

@@ -44,25 +44,22 @@ class _PurchaseOrderDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Safe placement for ref.listen
-    ref.listen<AsyncValue<void>>(purchaseOrderActionProvider, (previous, next) {
-      next.whenOrNull(
-        data: (_) {
-          if (!mounted) return;
-          showSuccess(
-            isEditing
-                ? "Data updated successfully"
-                : "Data created successfully",
-          );
+    ref.listen(
+      purchaseOrderActionProvider,
+          (previous, next) {
+        next.whenOrNull(
+          data: (result) {
+            if (result != null) {
+              showSuccess(result.message);
+            }
+          },
+          error: (err, _) {
+            showError(err.toString());
+          },
+        );
+      },
+    );
 
-          Navigator.pop(context);
-        },
-        error: (err, _) {
-          if (!mounted) return;
-          showError(err.toString());
-        },
-      );
-    });
     final actionState = ref.watch(purchaseOrderActionProvider);
 
     return Scaffold(
@@ -139,28 +136,7 @@ class _PurchaseOrderDetailScreenState
                   : ElevatedButton.icon(
                 icon: Icon(isEditing ? Icons.save : Icons.add),
                 label: Text(isEditing ? 'Update Data' : 'Save Data'),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final data = PurchaseOrder(
-                      id: widget.data?.id,
-                      transNumber: _transNumberController.text,
-                      transDate: transDate,
-                      supplierId: _supplierId ?? 0,
-                      supplier: _supplier ?? Supplier(id: 0, code: '', name: '', address: '', contactNo: ''),
-                      grandTotal: totalAmount,
-                      items: items,
-                    );
-
-                    final notifier =
-                    ref.read(purchaseOrderActionProvider.notifier);
-                    if (isEditing) {
-                      notifier.updateData(data);
-                    } else {
-                      notifier.createData(data);
-                    }
-                    ref.invalidate(productProvider);
-                  }
-                },
+                onPressed: _submit,
               ),
             ],
           ),
@@ -169,11 +145,33 @@ class _PurchaseOrderDetailScreenState
     );
   }
 
-  @override
-  void dispose() {
-    _transNumberController.dispose();
-    _supplierNameController.dispose();
-    super.dispose();
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final savedData = PurchaseOrder(
+      id: widget.data?.id,
+      transNumber: _transNumberController.text,
+      transDate: transDate,
+      supplierId: _supplierId ?? 0,
+      supplier: _supplier ?? Supplier(id: 0, code: '', name: '', address: '', contactNo: ''),
+      grandTotal: totalAmount,
+      items: items,
+    );
+
+    final notifier = ref.read(purchaseOrderActionProvider.notifier);
+
+    try {
+      if (isEditing) {
+        await notifier.updateData(savedData);
+      } else {
+        await notifier.createData(savedData);
+      }
+      if (!mounted) return;
+      ref.invalidate(productProvider);
+      Navigator.pop(context, true);
+    } catch (e) {
+      showError(e.toString());
+    }
   }
 
   Future<void> _selectSupplier() async {
@@ -211,5 +209,12 @@ class _PurchaseOrderDetailScreenState
 
   double get totalAmount =>
       items.fold(0, (sum, item) => sum + (item.quantity * item.unitPrice));
+
+  @override
+  void dispose() {
+    _transNumberController.dispose();
+    _supplierNameController.dispose();
+    super.dispose();
+  }
 
 }

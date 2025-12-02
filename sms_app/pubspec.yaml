@@ -27,6 +27,7 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
 dependencies:
   flutter:
     sdk: flutter
@@ -45,6 +46,7 @@ dependencies:
   shared_preferences: ^2.3.3
   number_to_words: ^1.0.0
   flutter_secure_storage: ^9.0.0
+  msix: ^3.16.12
 
 #  open_filex: 4.4.0
 
@@ -70,6 +72,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -101,3 +105,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+msix_config:
+  display_name: SMS App
+  publisher_display_name: RAZPortal
+  identity_name: com.razportal.smsapp
+  msix_version: 1.0.0.0
+  logo_path: assets/logo.png

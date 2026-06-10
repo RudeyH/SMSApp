@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:sms_app/screens/product_group_list_screen.dart';
 import 'package:sms_app/screens/product_report_screen.dart';
 import 'package:sms_app/screens/purchase_order_list_screen.dart';
+import 'package:sms_app/screens/purchase_order_report_screen.dart';
 import 'package:sms_app/screens/settings_screen.dart';
 import 'package:sms_app/screens/supplier_list_screen.dart';
 import 'package:sms_app/screens/sales_order_list_screen.dart';
@@ -109,6 +111,11 @@ class _MainTabScreenState extends State<MainTabScreen>
             label: "UOM Master",
             page: const UomListScreen(),
           ),
+          _SubMenuItem(
+            icon: Icons.inventory_2,
+            label: "Product Group Master",
+            page: const ProductGroupListScreen(),
+          ),
         ]);
         break;
       case 2:
@@ -132,9 +139,15 @@ class _MainTabScreenState extends State<MainTabScreen>
         _switchPage(_buildSelectMenuPlaceholder("Report"), "Report");
         _showSubMenu(context, [
           _SubMenuItem(
-            icon: Icons.report_sharp,
+            icon: Icons.inventory_2_outlined,
             label: "Product Report",
             page: const ProductReportScreen(),
+          ),
+
+          _SubMenuItem(
+            icon: Icons.receipt_long_outlined,
+            label: "Purchase Order Report",
+            page: const PurchaseOrderReportScreen(),
           ),
         ]);
         break;

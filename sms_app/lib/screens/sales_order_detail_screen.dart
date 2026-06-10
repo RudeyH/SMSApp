@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
+import '../enums/app_enums.dart';
 import '../helpers/notification_helper.dart';
 import '../models/customer_model.dart';
 import '../models/sales_order_item_model.dart';
@@ -271,7 +272,7 @@ class _SalesOrderDetailScreenState
     // Navigate to product lookup
     final newItem = await Navigator.push<SalesOrderItem>(
       context,
-      MaterialPageRoute(builder: (_) => const ProductLookupScreen(source: 'sales')),
+      MaterialPageRoute(builder: (_) => const ProductLookupScreen(mode: ProductLookupMode.sales,)),
     );
 
     if (!mounted) return; // ✅ safeguard after Navigator.push

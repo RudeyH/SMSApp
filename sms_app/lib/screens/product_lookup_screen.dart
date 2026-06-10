@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../enums/app_enums.dart';
 import '../models/sales_order_item_model.dart';
 import '../models/purchase_order_item_model.dart';
 import '../providers/product_provider.dart';
+import '../models/product_group_model.dart';
+import '../screens/product_group_lookup_screen.dart';
 
 class ProductLookupScreen extends ConsumerStatefulWidget {
-  final String source; // "sales" or "purchase"
+  final ProductLookupMode mode;
 
-  const ProductLookupScreen({super.key, required this.source});
+  const ProductLookupScreen({super.key, required this.mode});
 
   @override
   ConsumerState<ProductLookupScreen> createState() =>
@@ -16,6 +19,7 @@ class ProductLookupScreen extends ConsumerStatefulWidget {
 
 class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
   String _filter = '';
+  ProductGroup? _selectedProductGroup;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +28,16 @@ class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Select Product (${widget.source == "sales" ? "Sales Order" : "Purchase Order"})',
+          switch (widget.mode) {
+            ProductLookupMode.sales =>
+            'Select Product (Sales Order)',
+
+            ProductLookupMode.purchase =>
+            'Select Product (Purchase Order)',
+
+            ProductLookupMode.report =>
+            'Select Product (Report)',
+          },
         ),
       ),
       body: Column(
@@ -43,16 +56,72 @@ class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
               onChanged: (val) => setState(() => _filter = val.toLowerCase()),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+            ),
+            child: Card(
+              child: ListTile(
+                leading: const Icon(Icons.category),
+                title: const Text('Product Group'),
+                subtitle: Text(
+                  _selectedProductGroup == null
+                      ? 'All Product Groups'
+                      : '${_selectedProductGroup!.code} - '
+                      '${_selectedProductGroup!.name}',
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
 
+                    // CLEAR BUTTON
+
+                    if (_selectedProductGroup != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _selectedProductGroup = null;
+                          });
+                        },
+                      ),
+
+                    const Icon(Icons.search),
+                  ],
+                ),
+                onTap: _selectProductGroup,
+              ),
+            ),
+          ),
           // 📋 Product list
           Expanded(
             child: asyncProducts.when(
               data: (products) {
-                final filtered = products
-                    .where((p) =>
-                p.code.toLowerCase().contains(_filter) ||
-                    p.name.toLowerCase().contains(_filter))
-                    .toList();
+                // final filtered = products
+                //     .where((p) =>
+                // p.code.toLowerCase().contains(_filter) ||
+                //     p.name.toLowerCase().contains(_filter))
+                //     .toList();
+                final filtered = products.where((p) {
+
+                  // TEXT FILTER
+
+                  final matchText =
+                      p.code.toLowerCase().contains(_filter) ||
+                          p.name.toLowerCase().contains(_filter);
+
+                  // PRODUCT GROUP FILTER
+
+                  final matchProductGroup =
+
+                      _selectedProductGroup == null ||
+
+                          p.productGroupId ==
+                              _selectedProductGroup!.id;
+
+                  return matchText && matchProductGroup;
+
+                }).toList();
 
                 if (filtered.isEmpty) {
                   return const Center(child: Text('No matching products.'));
@@ -82,12 +151,19 @@ class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
                           style: const TextStyle(fontSize: 14),
                         ),
                         onTap: () async {
+                          if (widget.mode == ProductLookupMode.report) {
+                            Navigator.pop(context, p);
+                            return;
+                          }
+
                           // 🧩 Prevent selecting zero-stock product for sales
-                          if (widget.source == "sales" && p.quantity == 0) {
+                          if (widget.mode == ProductLookupMode.sales &&
+                              p.quantity == 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    "Cannot select this product. Quantity is 0."),
+                                  "Cannot select this product. Quantity is 0.",
+                                ),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
@@ -146,7 +222,7 @@ class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
                                         p.price;
 
                                     // 🧩 Prevent overselling
-                                    if (widget.source == "sales" &&
+                                    if (widget.mode == ProductLookupMode.sales &&
                                         qty > p.quantity) {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
@@ -172,7 +248,7 @@ class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
                             final qty = result['qty'] ?? 1;
                             final price = result['price'] ?? p.price;
 
-                            if (widget.source == 'sales') {
+                            if (widget.mode == ProductLookupMode.sales) {
                               Navigator.pop(
                                 context,
                                 SalesOrderItem(
@@ -208,5 +284,25 @@ class _ProductLookupScreenState extends ConsumerState<ProductLookupScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _selectProductGroup() async {
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+        const ProductGroupLookupScreen(),
+      ),
+    );
+
+    if (result != null && mounted) {
+
+      setState(() {
+
+        _selectedProductGroup =
+        result['productGroup'];
+      });
+    }
   }
 }

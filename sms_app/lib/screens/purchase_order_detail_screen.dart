@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../enums/app_enums.dart';
 import '../helpers/notification_helper.dart';
 import '../models/supplier_model.dart';
 import '../models/purchase_order_item_model.dart';
@@ -192,7 +193,7 @@ class _PurchaseOrderDetailScreenState
   Future<void> _addItem() async {
     final newItem = await Navigator.push<PurchaseOrderItem>(
       context,
-      MaterialPageRoute(builder: (_) => const ProductLookupScreen(source: 'purchase')),
+      MaterialPageRoute(builder: (_) => const ProductLookupScreen(mode: ProductLookupMode.purchase,)),
     );
     if (newItem != null) {
       setState(() {

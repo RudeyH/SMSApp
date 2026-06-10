@@ -4,6 +4,8 @@ import 'package:sms_app/screens/uom_lookup_screen.dart';
 import '../helpers/notification_helper.dart';
 import '../models/product_model.dart';
 import '../models/uom_model.dart';
+import '../models/product_group_model.dart';
+import '../screens/product_group_lookup_screen.dart';
 import '../providers/product_provider.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
@@ -24,9 +26,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   late final TextEditingController _priceController;
   late final TextEditingController _quantityController;
   late final TextEditingController _uomNameController;
+  late final TextEditingController _productGroupNameController;
 
   int? _uomId;
   UOM? _uom;
+  int? _productGroupId;
+  ProductGroup? _productGroup;
 
   bool get isEditing => widget.data != null;
 
@@ -43,6 +48,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     _uom = widget.data?.uom;
     _uomNameController =
         TextEditingController(text: widget.data?.uom.name ?? '');
+
+    _productGroupId = widget.data?.productGroupId ?? 0;
+    _productGroup = widget.data?.productGroup;
+
+    _productGroupNameController = TextEditingController(
+      text: widget.data?.productGroup?.name ?? '',
+    );
   }
 
   @override
@@ -117,6 +129,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+
+              GestureDetector(
+                onTap: _selectProductGroup,
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    controller: _productGroupNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product Group',
+                      suffixIcon: Icon(Icons.search),
+                    ),
+                    validator: (value) =>
+                    value!.isEmpty
+                        ? 'Please select a product group'
+                        : null,
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
               actionState.isLoading
                   ? const CircularProgressIndicator()
@@ -143,6 +173,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       quantity: double.tryParse(_quantityController.text.trim()) ?? 0,
       uomId: _uomId ?? 0,
       uom: _uom ?? UOM(id: 0, code: '', name: ''),
+      productGroupId: _productGroupId ?? 0,
+      productGroup: _productGroup,
     );
 
     final notifier = ref.read(productActionProvider.notifier);
@@ -177,6 +209,31 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     }
   }
 
+  Future<void> _selectProductGroup() async {
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProductGroupLookupScreen(),
+      ),
+    );
+
+    if (result != null && mounted) {
+
+      setState(() {
+
+        _productGroupId =
+        result['productGroupId'];
+
+        _productGroup =
+        result['productGroup'];
+
+        _productGroupNameController.text =
+        result['productGroupName'];
+      });
+    }
+  }
+
   @override
   void dispose() {
     _codeController.dispose();
@@ -184,6 +241,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     _priceController.dispose();
     _quantityController.dispose();
     _uomNameController.dispose();
+    _productGroupNameController.dispose();
     super.dispose();
   }
 }

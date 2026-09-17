@@ -224,6 +224,22 @@ class SalesOrderActionNotifier extends AsyncNotifier<ActionResult?> {
     );
   }
 
+  // Future<SalesOrder> createOrderWithoutItems(SalesOrder data) async {
+  //   final response = await ref
+  //       .read(authProvider.notifier)
+  //       .authenticatedRequest(ref, (headers) {
+  //     return http.post(
+  //       Uri.parse(baseUrl),
+  //       headers: {...headers, 'Content-Type': 'application/json'},
+  //       body: jsonEncode(data.toCreateJson()),
+  //     );
+  //   });
+  //   final api = ApiResponse.fromJson(jsonDecode(response.body));
+  //   if (!api.success) {
+  //     throw Exception(api.message ?? 'Failed to create order');
+  //   }
+  //   return SalesOrder.fromJson(JsonUtils.ensureMap(api.data));
+  // }
   Future<SalesOrder> createOrderWithoutItems(SalesOrder data) async {
     final response = await ref
         .read(authProvider.notifier)
@@ -234,10 +250,16 @@ class SalesOrderActionNotifier extends AsyncNotifier<ActionResult?> {
         body: jsonEncode(data.toCreateJson()),
       );
     });
+
+    print('STATUS: ${response.statusCode}');
+    print('BODY: ${response.body}');
+
     final api = ApiResponse.fromJson(jsonDecode(response.body));
+
     if (!api.success) {
       throw Exception(api.message ?? 'Failed to create order');
     }
+
     return SalesOrder.fromJson(JsonUtils.ensureMap(api.data));
   }
 

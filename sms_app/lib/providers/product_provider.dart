@@ -226,3 +226,64 @@ class ProductActionNotifier extends AsyncNotifier<ActionResult?> {
   }
 }
 
+
+
+/// Product provider filtered by Product Group.
+///
+/// IMPORTANT:
+/// This is a NEW provider and does NOT replace productProvider.
+///
+/// Usage:
+/// ref.watch(productByGroupProvider(productGroupId));
+final productByGroupProvider =
+FutureProvider.family<List<Product>, int>((ref, productGroupId) async {
+  const int page = 1;
+  const int pageSize = 20;
+
+  final uri = Uri.parse(
+    '$baseUrl/by-group/$productGroupId'
+        '?page=$page'
+        '&pageSize=$pageSize'
+        '&search=',
+  );
+
+  final response = await ref
+      .read(authProvider.notifier)
+      .authenticatedRequest(
+    ref,
+        (headers) {
+      return http.get(
+        uri,
+        headers: headers,
+      );
+    },
+  );
+
+  final ApiResponse api =
+  ApiResponse.fromJson(jsonDecode(response.body));
+
+  if (!api.success) {
+    throw Exception(
+      api.message ?? 'Failed to load products',
+    );
+  }
+
+  if (api.data is! List) {
+    throw Exception(
+      'API returned non-list data',
+    );
+  }
+
+  final List<dynamic> data =
+  api.data as List<dynamic>;
+
+  final products = data
+      .map((e) => Product.fromJson(e))
+      .toList();
+
+  return products;
+});
+
+
+
+

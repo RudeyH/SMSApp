@@ -1,3 +1,213 @@
+// import 'package:flutter/material.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import '../models/product_model.dart';
+// import '../providers/product_provider.dart';
+// import '../widgets/swipeable_list_tile.dart';
+// import '../widgets/sticky_search_bar.dart';
+// import 'product_detail_screen.dart';
+//
+// class ProductListScreen extends ConsumerStatefulWidget {
+//   const ProductListScreen({super.key});
+//
+//   @override
+//   ConsumerState<ProductListScreen> createState() => _ProductListScreenState();
+// }
+//
+// class _ProductListScreenState extends ConsumerState<ProductListScreen> {
+//   final ScrollController _scrollController = ScrollController();
+//   final TextEditingController _searchController = TextEditingController();
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _scrollController.addListener(_onScroll);
+//   }
+//
+//   void _onScroll() {
+//     final notifier = ref.read(productProvider.notifier);
+//     if (_scrollController.position.pixels >=
+//         _scrollController.position.maxScrollExtent - 200) {
+//       notifier.loadMore();
+//     }
+//   }
+//
+//   @override
+//   void dispose() {
+//     _scrollController.dispose();
+//     _searchController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final dataAsync = ref.watch(productProvider);
+//     final notifier = ref.read(productProvider.notifier);
+//     return Scaffold(
+//       body: SafeArea(
+//         child: dataAsync.when(
+//           data: (items) => RefreshIndicator(
+//             onRefresh: notifier.refresh,
+//             child: CustomScrollView(
+//               controller: _scrollController,
+//               slivers: [
+//                 // 🔍 Search Bar
+//                 SliverAppBar(
+//                   pinned: true,
+//                   backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+//                   automaticallyImplyLeading: false,
+//                   elevation: 2,
+//                   titleSpacing: 0,
+//                   title: StickySearchBar(
+//                     controller: _searchController,
+//                     hintText: 'Search products...',
+//                     onChanged: notifier.search,
+//                   ),
+//                 ),
+//
+//                 // 📌 Sticky Sort Summary Bar
+//                 // inside the _StickyHeaderDelegate child (Sorted by bar)
+//                 SliverPersistentHeader(
+//                   pinned: true,
+//                   delegate: _StickyHeaderDelegate(
+//                     child: Container(
+//                       color: Theme.of(context).cardColor,
+//                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//                       child: Row(
+//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                         children: [
+//                           Text(
+//                             'Sorted by: ${notifier.sortLabel}',
+//                             style: const TextStyle(
+//                                 fontWeight: FontWeight.w500, fontSize: 14),
+//                           ),
+//                           PopupMenuButton<String>(
+//                             icon: const Icon(Icons.sort),
+//                             onSelected: (value) {
+//                               notifier.toggleSort(value);
+//                             },
+//                             itemBuilder: (context) => [
+//                               const PopupMenuItem(
+//                                 value: 'name',
+//                                 child: Text('Name'),
+//                               ),
+//                               const PopupMenuItem(
+//                                 value: 'code',
+//                                 child: Text('Code'),
+//                               ),
+//                               const PopupMenuItem(
+//                                 value: 'price',
+//                                 child: Text('Price'),
+//                               ),
+//                               const PopupMenuItem(
+//                                 value: 'quantity',
+//                                 child: Text('Quantity'),
+//                               ),
+//                             ],
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//
+//
+//                 // 📦 Product List
+//                 SliverList.builder(
+//                   itemCount: items.length + 1,
+//                   itemBuilder: (context, index) {
+//                     if (index == items.length) {
+//                       if (notifier.hasMore) {
+//                         return const Padding(
+//                           padding: EdgeInsets.all(16.0),
+//                           child: Center(child: CircularProgressIndicator()),
+//                         );
+//                       } else {
+//                         return const Padding(
+//                           padding: EdgeInsets.all(16.0),
+//                           child: Center(child: Text('End of List')),
+//                         );
+//                       }
+//                     }
+//
+//                     final product = items[index];
+//                     return SwipeableListTile<Product>(
+//                       item: product,
+//                       deleteConfirmMessage:
+//                       'Are you sure you want to delete product "${product.name}"?',
+//                       onTap: () {
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (_) => ProductDetailScreen(data: product),
+//                           ),
+//                         );
+//                       },
+//                       onDelete: () async {
+//                         if (product.id != null) {
+//                           return await ref.read(productActionProvider.notifier).deleteData(product.id!);
+//                         }
+//                         return null;
+//                       },
+//                       contentBuilder: (_, data) => Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           Text(
+//                             data.name,
+//                             style: const TextStyle(
+//                                 fontSize: 16, fontWeight: FontWeight.bold),
+//                           ),
+//                           const SizedBox(height: 4),
+//                           Text('Code: ${data.code}'),
+//                           Text('Price: Rp ${data.price.toStringAsFixed(2)}'),
+//                           Text('Qty: ${data.quantity} ${data.uom.name}'),
+//                         ],
+//                       ),
+//                     );
+//                   },
+//                 ),
+//               ],
+//             ),
+//           ),
+//           loading: () => const Center(child: CircularProgressIndicator()),
+//           error: (err, _) => Center(child: Text('Error: $err')),
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () {
+//           Navigator.push(
+//             context,
+//             MaterialPageRoute(
+//               builder: (_) => const ProductDetailScreen(),
+//             ),
+//           );
+//         },
+//         child: const Icon(Icons.add),
+//       ),
+//     );
+//   }
+// }
+//
+// // 📌 Sticky Header Delegate
+// class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+//   final Widget child;
+//   _StickyHeaderDelegate({required this.child});
+//
+//   @override
+//   double get minExtent => 40;
+//   @override
+//   double get maxExtent => 40;
+//
+//   @override
+//   Widget build(
+//       BuildContext context, double shrinkOffset, bool overlapsContent) {
+//     return child;
+//   }
+//
+//   @override
+//   bool shouldRebuild(_StickyHeaderDelegate oldDelegate) => false;
+// }
+
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product_model.dart';
@@ -17,6 +227,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -25,14 +237,34 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   void _onScroll() {
     final notifier = ref.read(productProvider.notifier);
+
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       notifier.loadMore();
     }
   }
 
+  /// Search after the user stops typing for 600ms.
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+
+    _searchDebounce = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+
+      ref.read(productProvider.notifier).search(value);
+    });
+  }
+
+  /// Search immediately when the user presses Enter/Search.
+  void _onSearchSubmitted(String value) {
+    _searchDebounce?.cancel();
+
+    ref.read(productProvider.notifier).search(value);
+  }
+
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -42,6 +274,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(productProvider);
     final notifier = ref.read(productProvider.notifier);
+
     return Scaffold(
       body: SafeArea(
         child: dataAsync.when(
@@ -60,25 +293,34 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                   title: StickySearchBar(
                     controller: _searchController,
                     hintText: 'Search products...',
-                    onChanged: notifier.search,
+
+                    // Don't search on every keystroke.
+                    onChanged: _onSearchChanged,
+
+                    // Search immediately when Enter is pressed.
+                    onSubmitted: _onSearchSubmitted,
                   ),
                 ),
 
                 // 📌 Sticky Sort Summary Bar
-                // inside the _StickyHeaderDelegate child (Sorted by bar)
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _StickyHeaderDelegate(
                     child: Container(
                       color: Theme.of(context).cardColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Sorted by: ${notifier.sortLabel}',
                             style: const TextStyle(
-                                fontWeight: FontWeight.w500, fontSize: 14),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
                           ),
                           PopupMenuButton<String>(
                             icon: const Icon(Icons.sort),
@@ -110,7 +352,6 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                   ),
                 ),
 
-
                 // 📦 Product List
                 SliverList.builder(
                   itemCount: items.length + 1,
@@ -130,10 +371,12 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                     }
 
                     final product = items[index];
+
                     return SwipeableListTile<Product>(
                       item: product,
                       deleteConfirmMessage:
-                      'Are you sure you want to delete product "${product.name}"?',
+                          'Are you sure you want to delete product '
+                          '"${product.name}"?',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -144,8 +387,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                       },
                       onDelete: () async {
                         if (product.id != null) {
-                          return await ref.read(productActionProvider.notifier).deleteData(product.id!);
+                          return await ref
+                              .read(productActionProvider.notifier)
+                              .deleteData(product.id!);
                         }
+
                         return null;
                       },
                       contentBuilder: (_, data) => Column(
@@ -154,11 +400,16 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                           Text(
                             data.name,
                             style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text('Code: ${data.code}'),
-                          Text('Price: Rp ${data.price.toStringAsFixed(2)}'),
+                          Text(
+                            'Price: Rp '
+                            '${data.price.toStringAsFixed(2)}',
+                          ),
                           Text('Qty: ${data.quantity} ${data.uom.name}'),
                         ],
                       ),
@@ -176,9 +427,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const ProductDetailScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const ProductDetailScreen()),
           );
         },
         child: const Icon(Icons.add),
@@ -190,16 +439,21 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 // 📌 Sticky Header Delegate
 class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
+
   _StickyHeaderDelegate({required this.child});
 
   @override
   double get minExtent => 40;
+
   @override
   double get maxExtent => 40;
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return child;
   }
 

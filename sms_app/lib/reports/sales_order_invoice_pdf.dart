@@ -51,10 +51,10 @@ Future<Uint8List> generateSalesOrderInvoice({
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text("ONE", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                pw.Text("Pusat Tanah Abang Blok A/C"),
-                pw.Text("Jl. S. Parman No. 777"),
-                pw.Text("Telp. (021) 335599"),
+                pw.Text("HDH Autoparts", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                pw.Text("Medan "),
+                pw.Text(" "),
+                pw.Text(" "),
                 pw.SizedBox(height: 10),
                 pw.Text("Kepada Yth:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 pw.Container(
@@ -163,15 +163,53 @@ Future<Uint8List> generateSalesOrderInvoice({
                   children: [
                     pw.Text("Pembayaran ditransfer ke Rek:",
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text("BCA 874234567"),
-                    pw.Text("a/n Hiso Aje"),
+                    pw.Text("BCA 8195082797 / BRI 5311 01 025 844 538"),
+                    pw.Text("a/n Hendri Tanaka"),
                     pw.SizedBox(height: 8),
                     pw.Text(
-                      "Note: Giro a/n Hiso Aje dianggap lunas kalau dana sudah efektif.",
+                      "Note: Giro a/n Hendri Tanaka dianggap lunas kalau dana sudah efektif.",
                     ),
                   ],
                 ),
               ),
+            ),
+            // pw.SizedBox(width: 20),
+            // pw.Column(
+            //   children: [
+            //     pw.Text("Hormat Kami,"),
+            //     pw.SizedBox(height: 40),
+            //     pw.Container(
+            //       width: 120,
+            //       decoration: const pw.BoxDecoration(
+            //         border: pw.Border(top: pw.BorderSide(color: PdfColors.black)),
+            //       ),
+            //       alignment: pw.Alignment.center,
+            //       child: pw.Text("Tanda tangan / Nama"),
+            //     ),
+            //   ],
+            // ),
+          ],
+        ),
+
+        pw.SizedBox(height: 20),
+
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(
+              children: [
+                pw.Text("Tanda terima,"),
+                pw.SizedBox(height: 40),
+                pw.Container(
+                  width: 120,
+                  decoration: const pw.BoxDecoration(
+                    border: pw.Border(top: pw.BorderSide(color: PdfColors.black)),
+                  ),
+                  alignment: pw.Alignment.center,
+                  child: pw.Text("Tanggal : ${dateFormat.format(transDate)}"),
+                ),
+              ],
             ),
             pw.SizedBox(width: 20),
             pw.Column(

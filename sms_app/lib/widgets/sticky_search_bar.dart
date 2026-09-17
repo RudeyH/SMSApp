@@ -4,6 +4,7 @@ class StickySearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final EdgeInsetsGeometry margin;
 
   const StickySearchBar({
@@ -11,6 +12,7 @@ class StickySearchBar extends StatelessWidget {
     required this.controller,
     this.hintText = 'Search...',
     this.onChanged,
+    this.onSubmitted,
     this.margin = const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
   });
 
@@ -45,6 +47,7 @@ class StickySearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        onSubmitted: onSubmitted,
         decoration: InputDecoration(
           hintText: hintText,
           prefixIcon: const Icon(Icons.search),

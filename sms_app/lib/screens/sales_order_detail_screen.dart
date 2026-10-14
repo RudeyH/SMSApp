@@ -40,7 +40,7 @@ class _SalesOrderDetailScreenState
     super.initState();
 
     _transNumberController = TextEditingController(
-      text: widget.data?.transNumber ?? 'SO-${DateTime.now().millisecondsSinceEpoch}',
+      text: widget.data?.transNumber ?? 'SO',
     );
 
     _orderId = widget.data?.id;
@@ -57,18 +57,6 @@ class _SalesOrderDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    // final actionState = ref.watch(salesOrderActionProvider);
-    // ref.listen<AsyncValue<void>>(salesOrderActionProvider, (previous, next) {
-    //   next.whenOrNull(
-    //     data: (_) {
-    //       showSuccess(isEditing ? "Data updated!" : "Data created!");
-    //       Navigator.pop(context);
-    //     },
-    //     error: (err, _) {
-    //       showError(err.toString());
-    //     },
-    //   );
-    // });
     ref.listen<AsyncValue<ActionResult?>>(salesOrderActionProvider, (previous, next) {
       next.whenOrNull(
         data: (result) {
@@ -120,8 +108,29 @@ class _SalesOrderDetailScreenState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                      'Date: ${transDate.toLocal().toString().split(' ')[0]}'),
+                  Expanded(
+                    child: InkWell(
+                      onTap: _selectTransDate,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Date: ${transDate.year}-'
+                                    '${transDate.month.toString().padLeft(2, '0')}-'
+                                    '${transDate.day.toString().padLeft(2, '0')}',
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Text('Total: ${totalAmount.toStringAsFixed(2)}'),
                 ],
               ),
@@ -186,6 +195,25 @@ class _SalesOrderDetailScreenState
     super.dispose();
   }
 
+  Future<void> _selectTransDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: transDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        transDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+        );
+      });
+    }
+  }
+
   Future<void> _selectCustomer() async {
     // Wait for customer selection screen
     final result = await Navigator.push(
@@ -210,8 +238,21 @@ class _SalesOrderDetailScreenState
 
       // If adding new order and order not created yet -> create it immediately
       if (!isEditing && _orderId == null) {
+        final now = DateTime.now();
+
+        final orderDateTime = DateTime(
+          transDate.year,
+          transDate.month,
+          transDate.day,
+          now.hour,
+          now.minute,
+          now.second,
+        );
+
+        final transNumber = _generateTransNumber(orderDateTime);
+
         final order = SalesOrder(
-          transNumber: _transNumberController.text,
+          transNumber: transNumber,
           transDate: transDate,
           customerId: _customerId ?? 0,
           customer: _customer ??
@@ -231,10 +272,11 @@ class _SalesOrderDetailScreenState
               .read(salesOrderActionProvider.notifier)
               .createOrderWithoutItems(order);
 
-          if (!mounted) return; // ✅ prevent context usage if disposed
+          if (!mounted) return;
 
           setState(() {
             _orderId = created.id;
+            _transNumberController.text = created.transNumber;
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -242,6 +284,7 @@ class _SalesOrderDetailScreenState
           );
         } catch (e) {
           if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to create order: $e')),
           );
@@ -344,6 +387,16 @@ class _SalesOrderDetailScreenState
     }
   }
 
+  String _generateTransNumber(DateTime date) {
+    final year = date.year.toString();
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    final second = date.second.toString().padLeft(2, '0');
+
+    return 'SO-$year$month$day$hour$minute$second';
+  }
 
   double get totalAmount =>
       items.fold(0, (sum, item) => sum + (item.quantity * item.unitPrice));

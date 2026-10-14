@@ -24,7 +24,7 @@ class PurchaseOrder {
   factory PurchaseOrder.fromJson(Map<String, dynamic>? json) {
     json = json ?? {};
     return PurchaseOrder(
-      id: JsonUtils.parseInt(json['Id']),
+      id: JsonUtils.parseInt(json['id'] ?? json['Id']),
       transNumber: JsonUtils.parseString(json['transNumber']),
       transDate: _parseDate(json['transDate']),
       supplierId: JsonUtils.parseInt(json['supplierId']) ?? 0,

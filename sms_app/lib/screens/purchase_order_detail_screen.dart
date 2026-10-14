@@ -35,7 +35,7 @@ class _PurchaseOrderDetailScreenState
   void initState() {
     super.initState();
     _transNumberController =
-        TextEditingController(text: widget.data?.transNumber ?? 'PO-${DateTime.now().millisecondsSinceEpoch}');
+        TextEditingController(text: widget.data?.transNumber ?? 'PO');
     _supplierId = widget.data?.supplierId ?? 0;
     _supplier = widget.data?.supplier;
     _supplierNameController = TextEditingController(text: widget.data?.supplier.name ?? '');
@@ -98,9 +98,32 @@ class _PurchaseOrderDetailScreenState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: _selectTransDate,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Date: ${transDate.year}-'
+                                    '${transDate.month.toString().padLeft(2, '0')}-'
+                                    '${transDate.day.toString().padLeft(2, '0')}',
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Text(
-                      'Date: ${transDate.toLocal().toString().split(' ')[0]}'),
-                  Text('Total: ${totalAmount.toStringAsFixed(2)}'),
+                    'Total: ${totalAmount.toStringAsFixed(2)}',
+                  ),
                 ],
               ),
               const Divider(height: 20),
@@ -146,12 +169,50 @@ class _PurchaseOrderDetailScreenState
     );
   }
 
+  Future<void> _selectTransDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: transDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        transDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+        );
+      });
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (isEditing &&
+        (widget.data?.id == null || widget.data!.id == 0)) {
+      showError('Cannot update purchase order: ID is missing.');
+      return;
+    }
+
+    final String transNumber = isEditing
+        ? widget.data!.transNumber
+        : _generateTransNumber(
+      DateTime(
+        transDate.year,
+        transDate.month,
+        transDate.day,
+        DateTime.now().hour,
+        DateTime.now().minute,
+        DateTime.now().second,
+      ),
+    );
+
     final savedData = PurchaseOrder(
       id: widget.data?.id,
-      transNumber: _transNumberController.text,
+      transNumber: transNumber,
       transDate: transDate,
       supplierId: _supplierId ?? 0,
       supplier: _supplier ?? Supplier(id: 0, code: '', name: '', address: '', contactNo: ''),
@@ -206,6 +267,17 @@ class _PurchaseOrderDetailScreenState
     setState(() {
       items.remove(item);
     });
+  }
+
+  String _generateTransNumber(DateTime date) {
+    final year = date.year.toString();
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    final second = date.second.toString().padLeft(2, '0');
+
+    return 'PO-$year$month$day$hour$minute$second';
   }
 
   double get totalAmount =>
